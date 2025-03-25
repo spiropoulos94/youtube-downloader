@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"spiropoulos94/youtube-downloader/internal/config"
 	"spiropoulos94/youtube-downloader/internal/handler"
+	"spiropoulos94/youtube-downloader/internal/router"
 	"spiropoulos94/youtube-downloader/internal/service"
 )
 
@@ -11,6 +12,7 @@ type Container struct {
 	config   *config.Config
 	services *Services
 	handlers *Handlers
+	router   *router.Router
 	server   *http.Server
 }
 
@@ -22,7 +24,7 @@ type Handlers struct {
 	YouTube *handler.YouTubeHandler
 }
 
-// InitContainer initializes the container with configuration
+// InitContainer Initializes the container with configuration and Builds it
 func InitContainer() (*Container, error) {
 	cfg := config.Load()
 	container := NewContainer(cfg)
@@ -49,16 +51,17 @@ func (c *Container) Build() error {
 		YouTube: handler.NewYouTubeHandler(c.services.YouTube),
 	}
 
+	// Initialize router
+	c.router = router.NewRouter(c.handlers.YouTube)
+	c.router.SetupRoutes()
+
 	// Initialize HTTP server
 	c.server = &http.Server{
-		Addr: ":" + c.config.Port,
+		Addr:    ":" + c.config.Port,
+		Handler: c.router,
 	}
 
 	return nil
-}
-
-func (c *Container) GetYouTubeHandler() *handler.YouTubeHandler {
-	return c.handlers.YouTube
 }
 
 func (c *Container) GetPort() string {
@@ -66,7 +69,5 @@ func (c *Container) GetPort() string {
 }
 
 func (c *Container) StartServer() error {
-	// Set up routes
-	http.HandleFunc("/download", c.handlers.YouTube.DownloadVideo)
 	return c.server.ListenAndServe()
 }
