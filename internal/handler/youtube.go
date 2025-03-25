@@ -1,11 +1,11 @@
 package handler
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
+	"spiropoulos94/youtube-downloader/internal/httputils"
 	"spiropoulos94/youtube-downloader/internal/service"
 )
 
@@ -24,20 +24,19 @@ type DownloadRequest struct {
 	Quality string `json:"quality"`
 }
 
-func (h *YouTubeHandler) DownloadVideo(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
+type DownloadResponse struct {
+	FilePath string `json:"file_path"`
+}
 
+func (h *YouTubeHandler) DownloadVideo(w http.ResponseWriter, r *http.Request) {
 	var req DownloadRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	if err := httputils.ParseJSON(r, &req); err != nil {
+		httputils.SendError(w, httputils.ErrBadRequest)
 		return
 	}
 
 	if req.URL == "" {
-		http.Error(w, "URL is required", http.StatusBadRequest)
+		httputils.SendError(w, httputils.NewError(http.StatusBadRequest, "URL is required"))
 		return
 	}
 
@@ -48,14 +47,14 @@ func (h *YouTubeHandler) DownloadVideo(w http.ResponseWriter, r *http.Request) {
 	// Download the video
 	filePath, err := h.youtubeService.DownloadVideo(req.URL, req.Quality)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		httputils.SendError(w, err)
 		return
 	}
 
 	// Open the file
 	file, err := os.Open(filePath)
 	if err != nil {
-		http.Error(w, "Failed to open video file", http.StatusInternalServerError)
+		httputils.SendError(w, httputils.NewError(http.StatusInternalServerError, "Failed to open video file"))
 		return
 	}
 	defer file.Close()
@@ -63,7 +62,7 @@ func (h *YouTubeHandler) DownloadVideo(w http.ResponseWriter, r *http.Request) {
 	// Get file info for content length
 	fileInfo, err := file.Stat()
 	if err != nil {
-		http.Error(w, "Failed to get file info", http.StatusInternalServerError)
+		httputils.SendError(w, httputils.NewError(http.StatusInternalServerError, "Failed to get file info"))
 		return
 	}
 
