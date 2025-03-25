@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"net/http"
 	"spiropoulos94/youtube-downloader/internal/container"
 )
 
@@ -13,15 +12,9 @@ func main() {
 		log.Fatalf("Failed to initialize container: %v", err)
 	}
 
-	// Get handler from container
-	youtubeHandler := container.GetYouTubeHandler()
-
-	// Set up routes
-	http.HandleFunc("/download", youtubeHandler.DownloadVideo)
-
 	// Start server
 	log.Printf("Server starting on port %s...", container.GetPort())
-	if err := http.ListenAndServe(":"+container.GetPort(), nil); err != nil {
+	if err := container.StartServer(); err != nil {
 		log.Fatalf("Server failed to start: %v", err)
 	}
 }
