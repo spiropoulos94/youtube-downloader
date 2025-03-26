@@ -10,17 +10,19 @@ import (
 
 type Router struct {
 	router   *chi.Mux
-	handlers *handler.YouTubeHandler
+	handlers *handler.Handlers
 }
 
-func NewRouter(handlers *handler.YouTubeHandler) *Router {
-	return &Router{
+func BuildRouter(handlers *handler.Handlers) *Router {
+	r := &Router{
 		router:   chi.NewRouter(),
 		handlers: handlers,
 	}
+	r.setupRoutes()
+	return r
 }
 
-func (r *Router) SetupRoutes() {
+func (r *Router) setupRoutes() {
 	// Middleware
 	r.router.Use(middleware.Logger)
 	r.router.Use(middleware.Recoverer)
@@ -28,7 +30,7 @@ func (r *Router) SetupRoutes() {
 	// Routes
 	r.router.Route("/api", func(router chi.Router) {
 		// Download endpoint
-		router.Post("/download", r.handlers.DownloadVideo)
+		router.Post("/download", r.handlers.YouTube.DownloadVideo)
 
 		// Health check endpoint
 		router.Get("/health", func(w http.ResponseWriter, r *http.Request) {

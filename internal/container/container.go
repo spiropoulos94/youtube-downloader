@@ -6,22 +6,16 @@ import (
 	"spiropoulos94/youtube-downloader/internal/handler"
 	"spiropoulos94/youtube-downloader/internal/router"
 	"spiropoulos94/youtube-downloader/internal/service"
+	"spiropoulos94/youtube-downloader/internal/worker"
 )
 
 type Container struct {
 	config   *config.Config
-	services *Services
-	handlers *Handlers
+	services *service.Services
+	handlers *handler.Handlers
 	router   *router.Router
 	server   *http.Server
-}
-
-type Services struct {
-	YouTube *service.YouTubeService
-}
-
-type Handlers struct {
-	YouTube *handler.YouTubeHandler
+	worker   *worker.Manager
 }
 
 // InitContainer Initializes the container with configuration and Builds it
@@ -42,18 +36,20 @@ func NewContainer(config *config.Config) *Container {
 
 func (c *Container) Build() error {
 	// Initialize services
-	c.services = &Services{
+	c.services = &service.Services{
 		YouTube: service.NewYouTubeService(c.config.OutputDir),
 	}
 
+	// Initialize worker
+	c.worker = worker.NewManager(c.config.RedisAddr, c.services.YouTube)
+
 	// Initialize handlers
-	c.handlers = &Handlers{
-		YouTube: handler.NewYouTubeHandler(c.services.YouTube),
+	c.handlers = &handler.Handlers{
+		YouTube: handler.NewYouTubeHandler(c.services.YouTube, c.worker.GetClient()),
 	}
 
-	// Initialize router
-	c.router = router.NewRouter(c.handlers.YouTube)
-	c.router.SetupRoutes()
+	// Build router
+	c.router = router.BuildRouter(c.handlers)
 
 	// Initialize HTTP server
 	c.server = &http.Server{
@@ -64,10 +60,23 @@ func (c *Container) Build() error {
 	return nil
 }
 
-func (c *Container) GetPort() string {
-	return c.config.Port
+func (c *Container) StartServer() error {
+	// Start workers in a goroutine
+	go func() {
+		if err := c.worker.Start(); err != nil {
+			panic(err)
+		}
+	}()
+
+	// Start HTTP server
+	return c.server.ListenAndServe()
 }
 
-func (c *Container) StartServer() error {
-	return c.server.ListenAndServe()
+func (c *Container) Close() error {
+	c.worker.Stop()
+	return nil
+}
+
+func (c *Container) GetPort() string {
+	return c.config.Port
 }
