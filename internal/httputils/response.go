@@ -70,3 +70,9 @@ var (
 	ErrInternalServer     = NewError(http.StatusInternalServerError, "Internal server error")
 	ErrServiceUnavailable = NewError(http.StatusServiceUnavailable, "Service unavailable")
 )
+
+// Other errors
+var (
+	ErrTaskNotFound  = NewError(http.StatusNotFound, "Task not found")
+	ErrMissingTaskID = NewError(http.StatusBadRequest, "Missing task ID")
+)
