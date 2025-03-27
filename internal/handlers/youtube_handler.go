@@ -136,7 +136,7 @@ func (h *YouTubeHandler) GetTaskStatus(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (h *YouTubeHandler) DownloadVideo(w http.ResponseWriter, r *http.Request) {
+func (h *YouTubeHandler) ServeVideo(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		httputils.SendError(w, httputils.ErrMethodNotAllowed)
 		return
