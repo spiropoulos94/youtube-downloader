@@ -14,20 +14,18 @@ const TypeVideoDownload = "video:download"
 
 type VideoDownloadPayload struct {
 	URL      string `json:"url"`
-	Quality  string `json:"quality"`
 	TaskID   string `json:"task_id"`
 	FilePath string `json:"file_path,omitempty"`
 	Status   string `json:"status"`
 	Error    string `json:"error,omitempty"`
 }
 
-func NewVideoDownloadTask(url, quality string) (*asynq.Task, string, error) {
+func NewVideoDownloadTask(url string) (*asynq.Task, string, error) {
 	taskID := uuid.New().String()
 	payload := VideoDownloadPayload{
-		URL:     url,
-		Quality: quality,
-		TaskID:  taskID,
-		Status:  "pending",
+		URL:    url,
+		TaskID: taskID,
+		Status: "pending",
 	}
 
 	data, err := json.Marshal(payload)
@@ -49,10 +47,6 @@ func NewVideoDownloadProcessor(youtubeService *service.YouTubeService) *VideoDow
 }
 
 func (processor *VideoDownloadProcessor) ProcessTask(ctx context.Context, t *asynq.Task) error {
-	fmt.Println("Processing task")
-	fmt.Println("Processing task")
-	fmt.Println("Processing task")
-
 	var p VideoDownloadPayload
 	if err := json.Unmarshal(t.Payload(), &p); err != nil {
 		return fmt.Errorf("failed to unmarshal payload: %v", err)
@@ -62,7 +56,7 @@ func (processor *VideoDownloadProcessor) ProcessTask(ctx context.Context, t *asy
 	data, _ := json.Marshal(p)
 	t.ResultWriter().Write(data)
 
-	filePath, err := processor.youtubeService.DownloadVideo(p.URL, p.Quality)
+	filePath, err := processor.youtubeService.DownloadVideo(p.URL)
 	if err != nil {
 		p.Status = "failed"
 		p.Error = err.Error()

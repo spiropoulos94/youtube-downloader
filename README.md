@@ -1,6 +1,6 @@
 # YouTube Video Downloader
 
-A Go application that allows you to download YouTube videos either through a command-line interface or a web server.
+A Go application that allows you to download YouTube videos either through a command-line interface or a web server. The application always downloads videos in the best available quality.
 
 ## Prerequisites
 
@@ -45,13 +45,12 @@ Download videos directly from the terminal:
 go build -o youtube-dl cmd/cli/main.go
 
 # Run the CLI
-./youtube-dl -url "https://www.youtube.com/watch?v=..." -quality 1080p -output downloads
+./youtube-dl -url "https://www.youtube.com/watch?v=..." -output downloads
 ```
 
 Options:
 
 - `-url`: YouTube video URL (required)
-- `-quality`: Video quality (default: "best")
 - `-output`: Output directory (default: "downloads")
 
 ### Web Server
@@ -79,10 +78,39 @@ Options:
    ```bash
    curl -X POST http://localhost:8080/api/download \
      -H "Content-Type: application/json" \
-     -d '{"url": "https://www.youtube.com/watch?v=...", "quality": "1080p"}'
+     -d '{"url": "https://www.youtube.com/watch?v=..."}'
    ```
 
-2. Health Check
+   Response:
+
+   ```json
+   {
+     "success": true,
+     "data": {
+       "task_id": "550e8400-e29b-41d4-a716-446655440000"
+     }
+   }
+   ```
+
+2. Check Download Status
+
+   ```bash
+   curl http://localhost:8080/api/tasks/550e8400-e29b-41d4-a716-446655440000
+   ```
+
+   Response:
+
+   ```json
+   {
+     "success": true,
+     "data": {
+       "status": "completed",
+       "file_path": "/path/to/downloaded/video.mp4"
+     }
+   }
+   ```
+
+3. Health Check
    ```bash
    curl http://localhost:8080/api/health
    ```

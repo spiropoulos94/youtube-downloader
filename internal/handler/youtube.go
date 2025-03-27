@@ -26,8 +26,7 @@ func NewYouTubeHandler(youtubeService *service.YouTubeService, taskClient *asynq
 }
 
 type DownloadRequest struct {
-	URL     string `json:"url"`
-	Quality string `json:"quality"`
+	URL string `json:"url"`
 }
 
 type DownloadResponse struct {
@@ -46,12 +45,8 @@ func (h *YouTubeHandler) DownloadVideo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Quality == "" {
-		req.Quality = "best"
-	}
-
 	// Create async task
-	task, taskID, err := tasks.NewVideoDownloadTask(req.URL, req.Quality)
+	task, taskID, err := tasks.NewVideoDownloadTask(req.URL)
 	if err != nil {
 		httputils.SendError(w, httputils.NewError(http.StatusInternalServerError, "Failed to create download task"))
 		return

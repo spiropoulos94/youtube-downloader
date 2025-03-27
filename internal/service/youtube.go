@@ -17,7 +17,7 @@ func NewYouTubeService(outputDir string) *YouTubeService {
 	}
 }
 
-func (s *YouTubeService) DownloadVideo(url string, quality string) (string, error) {
+func (s *YouTubeService) DownloadVideo(url string) (string, error) {
 	// Create output directory if it doesn't exist
 	if err := os.MkdirAll(s.outputDir, 0755); err != nil {
 		return "", fmt.Errorf("failed to create output directory: %v", err)
@@ -28,10 +28,31 @@ func (s *YouTubeService) DownloadVideo(url string, quality string) (string, erro
 		return "", fmt.Errorf("yt-dlp is not installed. Please install it first:\nOn macOS: brew install yt-dlp\nOn Linux: sudo apt install yt-dlp or sudo pip install yt-dlp")
 	}
 
-	// Construct the yt-dlp command
+	// Construct the yt-dlp command for download
+	// Note about format selection:
+	// YouTube often provides video content in two separate streams:
+	// 1. A video stream (containing just the video)
+	// 2. An audio stream (containing just the audio)
+	//
+	// By not specifying a format with -f, we let yt-dlp:
+	// 1. Find the best quality video stream (e.g., 4K video)
+	// 2. Find the best quality audio stream (e.g., high bitrate audio)
+	// 3. Automatically download and merge these streams together
+	//
+	// This approach typically results in better quality than using -f best because:
+	// - It can select the highest quality video stream (which might not be available in pre-merged formats)
+	// - It can select the highest quality audio stream (which might not be available in pre-merged formats)
+	// - It combines these best-quality streams into a single file
+	//
+	// For example, a video might have:
+	// - Pre-merged format: 1080p video with 128kbps audio
+	// - Separate streams: 4K video + 256kbps audio
+	//
+	// Using -f best would only see the pre-merged 1080p version,
+	// while letting yt-dlp choose automatically would get the 4K video with better audio.
 	cmd := exec.Command("yt-dlp",
-		"-f", quality,
 		"-o", filepath.Join(s.outputDir, "%(title)s.%(ext)s"),
+		// "-f", "best", // See explanation above
 		"--no-playlist",
 		url)
 

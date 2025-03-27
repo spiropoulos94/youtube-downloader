@@ -11,14 +11,13 @@ func main() {
 	// Define command line flags
 	url := flag.String("url", "", "YouTube video URL")
 	outputDir := flag.String("output", "downloads", "Output directory for downloaded videos")
-	quality := flag.String("quality", "best", "Video quality (best, 1080p, 720p, etc.)")
 	flag.Parse()
 
 	// Validate URL
 	if *url == "" {
 		fmt.Println("Please provide a YouTube URL using the -url flag")
 		fmt.Println("Usage example:")
-		fmt.Println("  ./cli -url https://www.youtube.com/watch?v=... -quality 1080p -output downloads")
+		fmt.Println("  ./cli -url https://www.youtube.com/watch?v=... -output downloads")
 		return
 	}
 
@@ -27,7 +26,7 @@ func main() {
 
 	// Download video
 	fmt.Printf("Downloading video from: %s\n", *url)
-	filePath, err := youtubeService.DownloadVideo(*url, *quality)
+	filePath, err := youtubeService.DownloadVideo(*url)
 	if err != nil {
 		log.Fatalf("Failed to download video: %v", err)
 	}
