@@ -135,3 +135,42 @@ func (h *YouTubeHandler) GetTaskStatus(w http.ResponseWriter, r *http.Request) {
 		Error:    payload.Error,
 	})
 }
+
+func (h *YouTubeHandler) DownloadVideo(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		httputils.SendError(w, httputils.ErrMethodNotAllowed)
+		return
+	}
+
+	taskID := chi.URLParam(r, "task_id")
+	if taskID == "" {
+		httputils.SendError(w, httputils.ErrMissingTaskID)
+		return
+	}
+
+	// Get task info from Redis
+	resultKey := tasks.ResultKeyPrefix + taskID
+	result, err := h.redisClient.Get(r.Context(), resultKey).Result()
+	if err != nil {
+		httputils.SendError(w, httputils.ErrNotFound)
+		return
+	}
+
+	var payload tasks.VideoDownloadPayload
+	if err := json.Unmarshal([]byte(result), &payload); err != nil {
+		httputils.SendError(w, httputils.ErrInternalServer)
+		return
+	}
+
+	if payload.Status != "completed" || payload.FilePath == "" {
+		httputils.SendError(w, httputils.NewError(http.StatusBadRequest, "Video download not completed"))
+		return
+	}
+
+	// Set headers for file download
+	w.Header().Set("Content-Disposition", "attachment; filename=video.mp4")
+	w.Header().Set("Content-Type", "video/mp4")
+
+	// Serve the file
+	http.ServeFile(w, r, payload.FilePath)
+}

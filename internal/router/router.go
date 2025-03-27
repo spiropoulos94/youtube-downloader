@@ -35,6 +35,9 @@ func (r *Router) setupRoutes() {
 		// Task status endpoint
 		router.Get("/tasks/{task_id}", r.handlers.YouTube.GetTaskStatus)
 
+		// Video download endpoint
+		router.Get("/videos/{task_id}", r.handlers.YouTube.DownloadVideo)
+
 		// Health check endpoint
 		router.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
