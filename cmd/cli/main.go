@@ -4,7 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"spiropoulos94/youtube-downloader/internal/service"
+	"spiropoulos94/youtube-downloader/internal/services"
 )
 
 func main() {
@@ -22,7 +22,7 @@ func main() {
 	}
 
 	// Create YouTube service
-	youtubeService := service.NewYouTubeService(*outputDir)
+	youtubeService := services.NewYouTubeService(*outputDir)
 
 	// Download video
 	fmt.Printf("Downloading video from: %s\n", *url)

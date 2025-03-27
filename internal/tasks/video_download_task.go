@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"spiropoulos94/youtube-downloader/internal/service"
+	"spiropoulos94/youtube-downloader/internal/services"
 
 	"github.com/google/uuid"
 	"github.com/hibiken/asynq"
@@ -37,10 +37,10 @@ func NewVideoDownloadTask(url string) (*asynq.Task, string, error) {
 }
 
 type VideoDownloadProcessor struct {
-	youtubeService *service.YouTubeService
+	youtubeService *services.YouTubeService
 }
 
-func NewVideoDownloadProcessor(youtubeService *service.YouTubeService) *VideoDownloadProcessor {
+func NewVideoDownloadProcessor(youtubeService *services.YouTubeService) *VideoDownloadProcessor {
 	return &VideoDownloadProcessor{
 		youtubeService: youtubeService,
 	}

@@ -3,19 +3,19 @@ package container
 import (
 	"net/http"
 	"spiropoulos94/youtube-downloader/internal/config"
-	"spiropoulos94/youtube-downloader/internal/handler"
+	"spiropoulos94/youtube-downloader/internal/handlers"
 	"spiropoulos94/youtube-downloader/internal/router"
-	"spiropoulos94/youtube-downloader/internal/service"
-	"spiropoulos94/youtube-downloader/internal/worker"
+	"spiropoulos94/youtube-downloader/internal/services"
+	"spiropoulos94/youtube-downloader/internal/workers"
 )
 
 type Container struct {
 	config   *config.Config
-	services *service.Services
-	handlers *handler.Handlers
+	services *services.Services
+	handlers *handlers.Handlers
 	router   *router.Router
 	server   *http.Server
-	worker   *worker.Manager
+	worker   *workers.Manager
 }
 
 // InitContainer Initializes the container with configuration and Builds it
@@ -36,16 +36,16 @@ func NewContainer(config *config.Config) *Container {
 
 func (c *Container) Build() error {
 	// Initialize services
-	c.services = &service.Services{
-		YouTube: service.NewYouTubeService(c.config.OutputDir),
+	c.services = &services.Services{
+		YouTube: services.NewYouTubeService(c.config.OutputDir),
 	}
 
 	// Initialize worker
-	c.worker = worker.NewManager(c.config.RedisAddr, c.services.YouTube)
+	c.worker = workers.NewManager(c.config.RedisAddr, c.services.YouTube)
 
 	// Initialize handlers
-	c.handlers = &handler.Handlers{
-		YouTube: handler.NewYouTubeHandler(c.services.YouTube, c.worker.GetClient(), c.worker.GetInspector()),
+	c.handlers = &handlers.Handlers{
+		YouTube: handlers.NewYouTubeHandler(c.services.YouTube, c.worker.GetClient(), c.worker.GetInspector()),
 	}
 
 	// Build router

@@ -1,10 +1,10 @@
-package handler
+package handlers
 
 import (
 	"encoding/json"
 	"net/http"
 	"spiropoulos94/youtube-downloader/internal/httputils"
-	"spiropoulos94/youtube-downloader/internal/service"
+	"spiropoulos94/youtube-downloader/internal/services"
 	"spiropoulos94/youtube-downloader/internal/tasks"
 
 	"github.com/go-chi/chi/v5"
@@ -12,12 +12,12 @@ import (
 )
 
 type YouTubeHandler struct {
-	youtubeService *service.YouTubeService
+	youtubeService *services.YouTubeService
 	taskClient     *asynq.Client
 	inspector      *asynq.Inspector
 }
 
-func NewYouTubeHandler(youtubeService *service.YouTubeService, taskClient *asynq.Client, inspector *asynq.Inspector) *YouTubeHandler {
+func NewYouTubeHandler(youtubeService *services.YouTubeService, taskClient *asynq.Client, inspector *asynq.Inspector) *YouTubeHandler {
 	return &YouTubeHandler{
 		youtubeService: youtubeService,
 		taskClient:     taskClient,

@@ -2,7 +2,7 @@ package router
 
 import (
 	"net/http"
-	"spiropoulos94/youtube-downloader/internal/handler"
+	"spiropoulos94/youtube-downloader/internal/handlers"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -10,10 +10,10 @@ import (
 
 type Router struct {
 	router   *chi.Mux
-	handlers *handler.Handlers
+	handlers *handlers.Handlers
 }
 
-func BuildRouter(handlers *handler.Handlers) *Router {
+func BuildRouter(handlers *handlers.Handlers) *Router {
 	r := &Router{
 		router:   chi.NewRouter(),
 		handlers: handlers,
