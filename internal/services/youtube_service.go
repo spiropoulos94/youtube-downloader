@@ -52,7 +52,7 @@ func (s *YouTubeService) DownloadVideo(url string) (string, error) {
 	// while letting yt-dlp choose automatically would get the 4K video with better audio.
 	cmd := exec.Command("yt-dlp",
 		"-o", filepath.Join(s.outputDir, "%(title)s.%(ext)s"),
-		// "-f", "best", // See explanation above
+		"--merge-output-format", "mp4", // Force output to be MP4
 		"--no-playlist",
 		url)
 
