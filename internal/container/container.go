@@ -45,7 +45,7 @@ func (c *Container) Build() error {
 
 	// Initialize handlers
 	c.handlers = &handler.Handlers{
-		YouTube: handler.NewYouTubeHandler(c.services.YouTube, c.worker.GetClient()),
+		YouTube: handler.NewYouTubeHandler(c.services.YouTube, c.worker.GetClient(), c.worker.GetInspector()),
 	}
 
 	// Build router

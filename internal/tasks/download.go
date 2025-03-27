@@ -49,6 +49,10 @@ func NewVideoDownloadProcessor(youtubeService *service.YouTubeService) *VideoDow
 }
 
 func (processor *VideoDownloadProcessor) ProcessTask(ctx context.Context, t *asynq.Task) error {
+	fmt.Println("Processing task")
+	fmt.Println("Processing task")
+	fmt.Println("Processing task")
+
 	var p VideoDownloadPayload
 	if err := json.Unmarshal(t.Payload(), &p); err != nil {
 		return fmt.Errorf("failed to unmarshal payload: %v", err)
