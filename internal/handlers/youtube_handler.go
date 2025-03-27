@@ -7,6 +7,7 @@ import (
 	"spiropoulos94/youtube-downloader/internal/httputils"
 	"spiropoulos94/youtube-downloader/internal/services"
 	"spiropoulos94/youtube-downloader/internal/tasks"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/hibiken/asynq"
@@ -58,6 +59,23 @@ func (h *YouTubeHandler) DownloadVideo(w http.ResponseWriter, r *http.Request) {
 	task, taskID, err := tasks.NewVideoDownloadTask(req.URL)
 	if err != nil {
 		httputils.SendError(w, httputils.NewError(http.StatusInternalServerError, "Failed to create task"))
+		return
+	}
+
+	// Store initial task state in Redis
+	payload := tasks.VideoDownloadPayload{
+		URL:    req.URL,
+		TaskID: taskID,
+		Status: "pending",
+	}
+	data, err := json.Marshal(payload)
+	if err != nil {
+		httputils.SendError(w, httputils.NewError(http.StatusInternalServerError, "Failed to create task"))
+		return
+	}
+	resultKey := tasks.ResultKeyPrefix + taskID
+	if err := h.redisClient.Set(r.Context(), resultKey, data, time.Hour).Err(); err != nil {
+		httputils.SendError(w, httputils.NewError(http.StatusInternalServerError, "Failed to store task"))
 		return
 	}
 
@@ -125,6 +143,30 @@ func (h *YouTubeHandler) GetTaskStatus(w http.ResponseWriter, r *http.Request) {
 		log.Printf("GetTaskStatus: Error unmarshaling Asynq payload for task %s. Error: %v", taskID, err)
 		httputils.SendError(w, httputils.ErrInternalServer)
 		return
+	}
+
+	// If we found the task by Asynq ID but the custom UUID is different,
+	// try to find the task by custom UUID in Redis
+	if taskID != payload.TaskID {
+		log.Printf("GetTaskStatus: Found task by Asynq ID %s but custom UUID is %s, checking Redis...", taskID, payload.TaskID)
+		resultKey := tasks.ResultKeyPrefix + taskID
+		result, err := h.redisClient.Get(r.Context(), resultKey).Result()
+		if err == nil {
+			// Found in Redis by custom UUID
+			if err := json.Unmarshal([]byte(result), &payload); err != nil {
+				log.Printf("GetTaskStatus: Error unmarshaling Redis result for task %s. Error: %v", taskID, err)
+				httputils.SendError(w, httputils.ErrInternalServer)
+				return
+			}
+			log.Printf("GetTaskStatus: Found task %s in Redis with status: %s, filepath: %s, error: %s",
+				taskID, payload.Status, payload.FilePath, payload.Error)
+			httputils.SendJSON(w, http.StatusOK, TaskStatusResponse{
+				Status:   payload.Status,
+				FilePath: payload.FilePath,
+				Error:    payload.Error,
+			})
+			return
+		}
 	}
 
 	log.Printf("GetTaskStatus: Found task %s in Asynq with status: %s, filepath: %s, error: %s",

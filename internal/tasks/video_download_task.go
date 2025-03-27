@@ -61,9 +61,11 @@ func (processor *VideoDownloadProcessor) ProcessTask(ctx context.Context, t *asy
 
 	log.Printf("Processing task %s...", p.TaskID)
 
+	// Update status to processing
 	p.Status = "processing"
 	data, _ := json.Marshal(p)
 	t.ResultWriter().Write(data)
+	processor.storeResult(ctx, p)
 
 	log.Printf("Downloading video from %s for task %s...", p.URL, p.TaskID)
 	filePath, err := processor.youtubeService.DownloadVideo(p.URL)
@@ -73,7 +75,6 @@ func (processor *VideoDownloadProcessor) ProcessTask(ctx context.Context, t *asy
 		p.Error = err.Error()
 		data, _ := json.Marshal(p)
 		t.ResultWriter().Write(data)
-		// Store result in Redis
 		processor.storeResult(ctx, p)
 		return fmt.Errorf("failed to download video: %v", err)
 	}
@@ -83,7 +84,6 @@ func (processor *VideoDownloadProcessor) ProcessTask(ctx context.Context, t *asy
 	p.FilePath = filePath
 	data, _ = json.Marshal(p)
 	_, err = t.ResultWriter().Write(data)
-	// Store result in Redis
 	processor.storeResult(ctx, p)
 	return err
 }
