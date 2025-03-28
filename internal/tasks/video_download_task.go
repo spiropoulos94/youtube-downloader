@@ -6,23 +6,35 @@ import (
 	"fmt"
 	"log"
 	"spiropoulos94/youtube-downloader/internal/services"
+	"time"
 
 	"github.com/hibiken/asynq"
 )
 
 const TypeVideoDownload = "video:download"
 
+// TaskStatus represents the current state of a video download task
+type TaskStatus string
+
+// Task status constants
+const (
+	TaskStatusPending    TaskStatus = "pending"    // Task is waiting to be processed
+	TaskStatusProcessing TaskStatus = "processing" // Task is being processed
+	TaskStatusCompleted  TaskStatus = "completed"  // Task has been completed successfully
+	TaskStatusFailed     TaskStatus = "failed"     // Task failed to complete
+)
+
 type VideoDownloadPayload struct {
-	URL      string `json:"url"`
-	FilePath string `json:"file_path,omitempty"`
-	Status   string `json:"status"`
-	Error    string `json:"error,omitempty"`
+	URL      string     `json:"url"`
+	FilePath string     `json:"file_path,omitempty"`
+	Status   TaskStatus `json:"status"`
+	Error    string     `json:"error,omitempty"`
 }
 
 func NewVideoDownloadTask(url string) (*asynq.Task, error) {
 	payload := VideoDownloadPayload{
 		URL:    url,
-		Status: "pending",
+		Status: TaskStatusPending,
 	}
 
 	data, err := json.Marshal(payload)
@@ -56,17 +68,22 @@ func (processor *VideoDownloadProcessor) ProcessTask(ctx context.Context, t *asy
 	log.Printf("Task payload: %s", string(t.Payload()))
 
 	// Update status to processing
-	p.Status = "processing"
+	p.Status = TaskStatusProcessing
 	data, _ := json.Marshal(p)
 	if _, err := t.ResultWriter().Write(data); err != nil {
 		log.Printf("Error writing processing state: %v", err)
 	}
 
 	log.Printf("Downloading video from %s...", p.URL)
+
+	// time sleep for 30 seconds
+	log.Printf("Sleeping for 30 seconds...")
+	time.Sleep(30 * time.Second)
+
 	filePath, err := processor.youtubeService.DownloadVideo(p.URL)
 	if err != nil {
 		log.Printf("Error downloading video: %v", err)
-		p.Status = "failed"
+		p.Status = TaskStatusFailed
 		p.Error = err.Error()
 		data, _ := json.Marshal(p)
 		if _, err := t.ResultWriter().Write(data); err != nil {
@@ -76,7 +93,7 @@ func (processor *VideoDownloadProcessor) ProcessTask(ctx context.Context, t *asy
 	}
 
 	log.Printf("Successfully downloaded video to %s", filePath)
-	p.Status = "completed"
+	p.Status = TaskStatusCompleted
 	p.FilePath = filePath
 	data, _ = json.Marshal(p)
 	if _, err := t.ResultWriter().Write(data); err != nil {

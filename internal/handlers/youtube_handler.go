@@ -36,9 +36,9 @@ type DownloadResponse struct {
 }
 
 type TaskStatusResponse struct {
-	Status   string `json:"status"`
-	FilePath string `json:"file_path,omitempty"`
-	Error    string `json:"error,omitempty"`
+	Status   tasks.TaskStatus `json:"status"`
+	FilePath string           `json:"file_path,omitempty"`
+	Error    string           `json:"error,omitempty"`
 }
 
 func (h *YouTubeHandler) DownloadVideo(w http.ResponseWriter, r *http.Request) {
@@ -131,7 +131,7 @@ func (h *YouTubeHandler) ServeVideo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if payload.Status != "completed" || payload.FilePath == "" {
+	if payload.Status != tasks.TaskStatusCompleted || payload.FilePath == "" {
 		log.Printf("Video not ready: ID=%s, Status=%s", taskID, payload.Status)
 		httputils.SendError(w, httputils.NewError(http.StatusBadRequest, "Video download not completed"))
 		return
