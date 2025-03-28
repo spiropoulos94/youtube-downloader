@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"spiropoulos94/youtube-downloader/internal/services"
-	"time"
 
 	"github.com/hibiken/asynq"
 )
@@ -75,10 +74,6 @@ func (processor *VideoDownloadProcessor) ProcessTask(ctx context.Context, t *asy
 	}
 
 	log.Printf("Downloading video from %s...", p.URL)
-
-	// time sleep for 30 seconds
-	log.Printf("Sleeping for 30 seconds...")
-	time.Sleep(30 * time.Second)
 
 	filePath, err := processor.youtubeService.DownloadVideo(p.URL)
 	if err != nil {
