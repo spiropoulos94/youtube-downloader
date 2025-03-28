@@ -6,49 +6,42 @@ import (
 	"fmt"
 	"log"
 	"spiropoulos94/youtube-downloader/internal/services"
-	"time"
 
-	"github.com/google/uuid"
 	"github.com/hibiken/asynq"
-	"github.com/redis/go-redis/v9"
 )
 
 const TypeVideoDownload = "video:download"
-const ResultKeyPrefix = "video:download:result:"
 
 type VideoDownloadPayload struct {
 	URL      string `json:"url"`
-	TaskID   string `json:"task_id"`
 	FilePath string `json:"file_path,omitempty"`
 	Status   string `json:"status"`
 	Error    string `json:"error,omitempty"`
 }
 
-func NewVideoDownloadTask(url string) (*asynq.Task, string, error) {
-	taskID := uuid.New().String()
+func NewVideoDownloadTask(url string) (*asynq.Task, error) {
 	payload := VideoDownloadPayload{
 		URL:    url,
-		TaskID: taskID,
 		Status: "pending",
 	}
 
 	data, err := json.Marshal(payload)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 
-	return asynq.NewTask(TypeVideoDownload, data), taskID, nil
+	task := asynq.NewTask(TypeVideoDownload, data)
+
+	return task, nil
 }
 
 type VideoDownloadProcessor struct {
 	youtubeService *services.YouTubeService
-	redisClient    *redis.Client
 }
 
-func NewVideoDownloadProcessor(youtubeService *services.YouTubeService, redisClient *redis.Client) *VideoDownloadProcessor {
+func NewVideoDownloadProcessor(youtubeService *services.YouTubeService) *VideoDownloadProcessor {
 	return &VideoDownloadProcessor{
 		youtubeService: youtubeService,
-		redisClient:    redisClient,
 	}
 }
 
@@ -59,43 +52,38 @@ func (processor *VideoDownloadProcessor) ProcessTask(ctx context.Context, t *asy
 		return fmt.Errorf("failed to unmarshal payload: %v", err)
 	}
 
-	log.Printf("Processing task %s...", p.TaskID)
+	log.Printf("Processing task...")
+	log.Printf("Task payload: %s", string(t.Payload()))
 
 	// Update status to processing
 	p.Status = "processing"
 	data, _ := json.Marshal(p)
-	t.ResultWriter().Write(data)
-	processor.storeResult(ctx, p)
+	if _, err := t.ResultWriter().Write(data); err != nil {
+		log.Printf("Error writing processing state: %v", err)
+	}
 
-	log.Printf("Downloading video from %s for task %s...", p.URL, p.TaskID)
+	log.Printf("Downloading video from %s...", p.URL)
 	filePath, err := processor.youtubeService.DownloadVideo(p.URL)
 	if err != nil {
-		log.Printf("Error downloading video for task %s: %v", p.TaskID, err)
+		log.Printf("Error downloading video: %v", err)
 		p.Status = "failed"
 		p.Error = err.Error()
 		data, _ := json.Marshal(p)
-		t.ResultWriter().Write(data)
-		processor.storeResult(ctx, p)
+		if _, err := t.ResultWriter().Write(data); err != nil {
+			log.Printf("Error writing failed state: %v", err)
+		}
 		return fmt.Errorf("failed to download video: %v", err)
 	}
 
-	log.Printf("Successfully downloaded video to %s for task %s", filePath, p.TaskID)
+	log.Printf("Successfully downloaded video to %s", filePath)
 	p.Status = "completed"
 	p.FilePath = filePath
 	data, _ = json.Marshal(p)
-	_, err = t.ResultWriter().Write(data)
-	processor.storeResult(ctx, p)
-	return err
-}
+	if _, err := t.ResultWriter().Write(data); err != nil {
+		log.Printf("Error writing completed state: %v", err)
+		return err
+	}
 
-// Store the task result in Redis with a 1-hour expiration.
-// This is necessary because Asynq automatically deletes completed tasks from its queue,
-// which means calling GetTaskStatus after completion would return "Task not found".
-// By storing results in Redis separately, we can still return task status and results
-// to clients even after the task is completed and removed from Asynq's queue.
-// The 1-hour expiration prevents accumulating stale results indefinitely.
-func (processor *VideoDownloadProcessor) storeResult(ctx context.Context, payload VideoDownloadPayload) {
-	resultKey := ResultKeyPrefix + payload.TaskID
-	data, _ := json.Marshal(payload)
-	processor.redisClient.Set(ctx, resultKey, data, time.Hour)
+	// Return nil to mark task as completed
+	return nil
 }

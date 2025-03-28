@@ -4,9 +4,9 @@ import (
 	"log"
 	"spiropoulos94/youtube-downloader/internal/services"
 	"spiropoulos94/youtube-downloader/internal/tasks"
+	"time"
 
 	"github.com/hibiken/asynq"
-	"github.com/redis/go-redis/v9"
 )
 
 // Manager handles the Asynq worker server and task processing
@@ -15,23 +15,28 @@ type Manager struct {
 	server         *asynq.Server
 	inspector      *asynq.Inspector
 	youtubeService *services.YouTubeService
-	redisClient    *redis.Client
+	redisOpt       asynq.RedisClientOpt
 }
 
 // NewManager creates a new worker manager
-func NewManager(redisAddr string, youtubeService *services.YouTubeService, redisClient *redis.Client) *Manager {
+func NewManager(redisAddr string, youtubeService *services.YouTubeService) *Manager {
 	redisOpt := asynq.RedisClientOpt{
 		Addr: redisAddr,
 	}
 
+	client := asynq.NewClient(redisOpt)
+	server := asynq.NewServer(redisOpt, asynq.Config{
+		Concurrency:         10,
+		HealthCheckInterval: 3 * time.Second,
+	})
+	inspector := asynq.NewInspector(redisOpt)
+
 	return &Manager{
-		client: asynq.NewClient(redisOpt),
-		server: asynq.NewServer(redisOpt, asynq.Config{
-			Concurrency: 10,
-		}),
-		inspector:      asynq.NewInspector(redisOpt),
+		client:         client,
+		server:         server,
+		inspector:      inspector,
 		youtubeService: youtubeService,
-		redisClient:    redisClient,
+		redisOpt:       redisOpt,
 	}
 }
 
@@ -40,7 +45,7 @@ func (m *Manager) Start() error {
 	log.Println("Starting worker server...")
 
 	// Initialize processors
-	downloadProcessor := tasks.NewVideoDownloadProcessor(m.youtubeService, m.redisClient)
+	downloadProcessor := tasks.NewVideoDownloadProcessor(m.youtubeService)
 
 	// Initialize mux
 	mux := asynq.NewServeMux()
@@ -69,4 +74,9 @@ func (m *Manager) GetClient() *asynq.Client {
 // GetInspector returns the Asynq inspector for task inspection
 func (m *Manager) GetInspector() *asynq.Inspector {
 	return m.inspector
+}
+
+// GetRedisOpt returns the Redis connection options
+func (m *Manager) GetRedisOpt() asynq.RedisClientOpt {
+	return m.redisOpt
 }

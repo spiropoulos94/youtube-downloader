@@ -3,20 +3,24 @@ package router
 import (
 	"net/http"
 	"spiropoulos94/youtube-downloader/internal/handlers"
+	"spiropoulos94/youtube-downloader/internal/workers"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/hibiken/asynqmon"
 )
 
 type Router struct {
-	router   *chi.Mux
-	handlers *handlers.Handlers
+	router        *chi.Mux
+	handlers      *handlers.Handlers
+	workerManager *workers.Manager
 }
 
-func BuildRouter(handlers *handlers.Handlers) *Router {
+func BuildRouter(handlers *handlers.Handlers, workerManager *workers.Manager) *Router {
 	r := &Router{
-		router:   chi.NewRouter(),
-		handlers: handlers,
+		router:        chi.NewRouter(),
+		handlers:      handlers,
+		workerManager: workerManager,
 	}
 	r.setupRoutes()
 	return r
@@ -26,6 +30,13 @@ func (r *Router) setupRoutes() {
 	// Middleware
 	r.router.Use(middleware.Logger)
 	r.router.Use(middleware.Recoverer)
+
+	// Asynqmon dashboard
+	asynqmonHandler := asynqmon.New(asynqmon.Options{
+		RedisConnOpt: r.workerManager.GetRedisOpt(),
+		RootPath:     "/monitoring", // RootPath specifies the root for asynqmon app
+	})
+	r.router.Get("/monitoring/*", asynqmonHandler.ServeHTTP)
 
 	// Routes
 	r.router.Route("/api", func(router chi.Router) {
