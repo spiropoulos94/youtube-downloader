@@ -22,7 +22,7 @@ func main() {
 	}
 
 	// Create YouTube service
-	youtubeService := services.NewYouTubeService(*outputDir)
+	youtubeService := services.NewYouTubeService(*outputDir, nil) // we don't need redis client for the cli, since we are not using the server and the video is instantly downloaded and accessible to the user
 
 	// Download video
 	fmt.Printf("Downloading video from: %s\n", *url)

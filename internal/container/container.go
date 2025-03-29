@@ -7,6 +7,8 @@ import (
 	"spiropoulos94/youtube-downloader/internal/router"
 	"spiropoulos94/youtube-downloader/internal/services"
 	"spiropoulos94/youtube-downloader/internal/workers"
+
+	"github.com/redis/go-redis/v9"
 )
 
 type Container struct {
@@ -16,6 +18,7 @@ type Container struct {
 	router        *router.Router
 	server        *http.Server
 	workerManager *workers.Manager
+	redis         *redis.Client
 }
 
 // InitContainer Initializes the container with configuration and Builds it
@@ -30,22 +33,26 @@ func InitContainer() (*Container, error) {
 
 // NewContainer creates a new container with the given configuration and dependencies
 func NewContainer(config *config.Config) *Container {
+	// Create Redis client
+	redis := redis.NewClient(&redis.Options{
+		Addr: config.RedisAddr,
+	})
+
 	// Create services
-	youtubeService := services.NewYouTubeService(config.OutputDir)
+	youtubeService := services.NewYouTubeService(config.OutputDir, redis)
 
 	// Create worker manager
-	workerManager := workers.NewManager(config.RedisAddr, youtubeService)
+	workerManager := workers.NewManager(redis, youtubeService)
 
 	// Create handlers
-	handlers := &handlers.Handlers{
-		YouTube: handlers.NewYouTubeHandler(youtubeService, workerManager.GetClient(), workerManager.GetInspector()),
-	}
+	youtubeHandler := handlers.NewYouTubeHandler(youtubeService, workerManager.GetClient(), workerManager.GetInspector())
 
 	return &Container{
 		config:        config,
 		services:      &services.Services{YouTube: youtubeService},
-		handlers:      handlers,
+		handlers:      &handlers.Handlers{YouTube: youtubeHandler},
 		workerManager: workerManager,
+		redis:         redis,
 	}
 }
 
@@ -76,6 +83,7 @@ func (c *Container) StartServer() error {
 
 func (c *Container) Close() error {
 	c.workerManager.Stop()
+	c.redis.Close()
 	return c.server.Close()
 }
 

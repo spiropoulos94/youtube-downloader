@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/hibiken/asynq"
+	"github.com/redis/go-redis/v9"
 )
 
 // Manager handles the Asynq worker server and task processing
@@ -15,13 +16,13 @@ type Manager struct {
 	server         *asynq.Server
 	inspector      *asynq.Inspector
 	youtubeService *services.YouTubeService
-	redisOpt       asynq.RedisClientOpt
+	redis          *redis.Client
 }
 
 // NewManager creates a new worker manager
-func NewManager(redisAddr string, youtubeService *services.YouTubeService) *Manager {
+func NewManager(redis *redis.Client, youtubeService *services.YouTubeService) *Manager {
 	redisOpt := asynq.RedisClientOpt{
-		Addr: redisAddr,
+		Addr: redis.Options().Addr,
 	}
 
 	client := asynq.NewClient(redisOpt)
@@ -36,7 +37,7 @@ func NewManager(redisAddr string, youtubeService *services.YouTubeService) *Mana
 		server:         server,
 		inspector:      inspector,
 		youtubeService: youtubeService,
-		redisOpt:       redisOpt,
+		redis:          redis,
 	}
 }
 
@@ -78,5 +79,7 @@ func (m *Manager) GetInspector() *asynq.Inspector {
 
 // GetRedisOpt returns the Redis connection options
 func (m *Manager) GetRedisOpt() asynq.RedisClientOpt {
-	return m.redisOpt
+	return asynq.RedisClientOpt{
+		Addr: m.redis.Options().Addr,
+	}
 }

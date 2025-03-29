@@ -2,8 +2,10 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"spiropoulos94/youtube-downloader/internal/httputils"
 	"spiropoulos94/youtube-downloader/internal/services"
 	"spiropoulos94/youtube-downloader/internal/tasks"
@@ -137,9 +139,40 @@ func (h *YouTubeHandler) ServeVideo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Open the file before setting headers
+	file, err := os.Open(payload.FilePath)
+	if err != nil {
+		log.Printf("Failed to open file: ID=%s, Error=%v", taskID, err)
+		httputils.SendError(w, httputils.ErrInternalServer)
+		return
+	}
+	defer file.Close()
+
+	// Get file info for content length
+	fileInfo, err := file.Stat()
+	if err != nil {
+		log.Printf("Failed to get file info: ID=%s, Error=%v", taskID, err)
+		httputils.SendError(w, httputils.ErrInternalServer)
+		return
+	}
+
+	// Set headers
 	w.Header().Set("Content-Disposition", "attachment; filename=video.mp4")
 	w.Header().Set("Content-Type", "video/mp4")
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", fileInfo.Size()))
 
 	log.Printf("Serving video: ID=%s, File=%s", taskID, payload.FilePath)
-	http.ServeFile(w, r, payload.FilePath)
+
+	// Create cleanup function
+	cleanup := func() {
+		if err := h.youtubeService.DecrementRefCount(payload.FilePath); err != nil {
+			log.Printf("Failed to decrement reference count: ID=%s, Error=%v", taskID, err)
+		}
+	}
+
+	// Create cleanup reader that will run the cleanup function when the reader is closed aka when the file is downloaded
+	cleanupReader := httputils.NewCleanupReader(file, cleanup)
+
+	// Serve the file
+	http.ServeContent(w, r, fileInfo.Name(), fileInfo.ModTime(), cleanupReader)
 }
