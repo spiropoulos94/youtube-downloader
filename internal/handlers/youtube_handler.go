@@ -9,6 +9,7 @@ import (
 	"spiropoulos94/youtube-downloader/internal/httputils"
 	"spiropoulos94/youtube-downloader/internal/services"
 	"spiropoulos94/youtube-downloader/internal/tasks"
+	"spiropoulos94/youtube-downloader/internal/validators"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -19,6 +20,7 @@ type YouTubeHandler struct {
 	youtubeService *services.YouTubeService
 	client         *asynq.Client
 	inspector      *asynq.Inspector
+	urlValidator   *validators.YouTubeURLValidator
 }
 
 func NewYouTubeHandler(youtubeService *services.YouTubeService, client *asynq.Client, inspector *asynq.Inspector) *YouTubeHandler {
@@ -26,6 +28,7 @@ func NewYouTubeHandler(youtubeService *services.YouTubeService, client *asynq.Cl
 		youtubeService: youtubeService,
 		client:         client,
 		inspector:      inspector,
+		urlValidator:   validators.NewYouTubeURLValidator(),
 	}
 }
 
@@ -52,6 +55,12 @@ func (h *YouTubeHandler) DownloadVideo(w http.ResponseWriter, r *http.Request) {
 	var req DownloadRequest
 	if err := httputils.ParseJSON(r, &req); err != nil {
 		httputils.SendError(w, httputils.ErrBadRequest)
+		return
+	}
+
+	// Validate YouTube URL using the validator
+	if err := h.urlValidator.Validate(req.URL); err != nil {
+		httputils.SendError(w, httputils.NewError(http.StatusBadRequest, err.Error()))
 		return
 	}
 
