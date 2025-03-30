@@ -40,6 +40,7 @@ func NewContainer(config *config.Config) *Container {
 
 	// Create services
 	youtubeService := services.NewYouTubeService(config.OutputDir, redis)
+	cleanupService := services.NewCleanupService(config.OutputDir, redis)
 
 	// Create worker manager
 	workerManager := workers.NewManager(redis, youtubeService)
@@ -49,7 +50,7 @@ func NewContainer(config *config.Config) *Container {
 
 	return &Container{
 		config:        config,
-		services:      &services.Services{YouTube: youtubeService},
+		services:      &services.Services{YouTube: youtubeService, Cleanup: cleanupService},
 		handlers:      &handlers.Handlers{YouTube: youtubeHandler},
 		workerManager: workerManager,
 		redis:         redis,
@@ -74,6 +75,9 @@ func (c *Container) Build() error {
 		}
 	}()
 
+	// Start cleanup service to remove files that haven't been requested in the last hour
+	c.services.Cleanup.Start()
+
 	return nil
 }
 
@@ -83,6 +87,7 @@ func (c *Container) StartServer() error {
 
 func (c *Container) Close() error {
 	c.workerManager.Stop()
+	c.services.Cleanup.Stop()
 	c.redis.Close()
 	return c.server.Close()
 }

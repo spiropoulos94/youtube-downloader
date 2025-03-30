@@ -172,16 +172,20 @@ func (h *YouTubeHandler) ServeVideo(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Serving video: ID=%s, File=%s", taskID, payload.FilePath)
 
+	// This was needed to decrement the reference count of the file
+	// but now that we have Redis key expiration, we don't need it anymore
+	// Old implementation: deleted the file from the server when the file was downloaded
+
 	// Create cleanup function
-	cleanup := func() {
-		if err := h.youtubeService.DecrementRefCount(payload.FilePath); err != nil {
-			log.Printf("Failed to decrement reference count: ID=%s, Error=%v", taskID, err)
-		}
-	}
+	// cleanup := func() {
+	// 	// No need to do anything on cleanup since Redis key expiration handles it
+	// }
+
+	// http.ServeContent(w, r, fileInfo.Name(), fileInfo.ModTime(), cleanupReader)
 
 	// Create cleanup reader that will run the cleanup function when the reader is closed aka when the file is downloaded
-	cleanupReader := httputils.NewCleanupReader(file, cleanup)
+	// cleanupReader := httputils.NewCleanupReader(file, cleanup)
 
 	// Serve the file
-	http.ServeContent(w, r, fileInfo.Name(), fileInfo.ModTime(), cleanupReader)
+	http.ServeContent(w, r, fileInfo.Name(), fileInfo.ModTime(), file)
 }
