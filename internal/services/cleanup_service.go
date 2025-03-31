@@ -39,7 +39,7 @@ func (s *CleanupService) Stop() {
 
 // runCleanupLoop runs the cleanup process every 5 seconds
 func (s *CleanupService) runCleanupLoop() {
-	ticker := time.NewTicker(30 * time.Second)
+	ticker := time.NewTicker(30 * time.Minute)
 	defer ticker.Stop()
 
 	for {

@@ -2,6 +2,8 @@ package services
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"os/exec"
@@ -38,6 +40,12 @@ func (s *YouTubeService) UpdateLastRequestTime(filePath string) error {
 	return nil
 }
 
+// GetURLHash returns a hash of the URL that can be used to identify the video
+func (s *YouTubeService) GetURLHash(url string) string {
+	urlHash := sha256.Sum256([]byte(url))
+	return hex.EncodeToString(urlHash[:8]) // Use first 8 chars of hash
+}
+
 func (s *YouTubeService) DownloadVideo(url string) (string, error) {
 	// Create output directory if it doesn't exist
 	if err := os.MkdirAll(s.outputDir, 0755); err != nil {
@@ -49,19 +57,8 @@ func (s *YouTubeService) DownloadVideo(url string) (string, error) {
 		return "", fmt.Errorf("yt-dlp is not installed. Please install it first:\nOn macOS: brew install yt-dlp\nOn Linux: sudo apt install yt-dlp or sudo pip install yt-dlp")
 	}
 
-	// First, try to get the video title without downloading
-	titleCmd := exec.Command("yt-dlp",
-		"--get-title",
-		"--no-playlist",
-		url)
-
-	titleOutput, err := titleCmd.Output()
-	if err != nil {
-		return "", fmt.Errorf("failed to get video title: %v", err)
-	}
-
-	// Clean up the title (remove newlines and trim spaces)
-	title := strings.TrimSpace(string(titleOutput))
+	// Get URL hash
+	urlHashStr := s.GetURLHash(url)
 
 	// Check if video already exists
 	existingFiles, err := os.ReadDir(s.outputDir)
@@ -69,24 +66,32 @@ func (s *YouTubeService) DownloadVideo(url string) (string, error) {
 		return "", fmt.Errorf("failed to read output directory: %v", err)
 	}
 
-	// Look for existing video with the same title
+	// Look for existing video with the same URL hash
 	for _, file := range existingFiles {
-		if strings.Contains(file.Name(), title) && (strings.HasSuffix(file.Name(), ".mp4") || strings.HasSuffix(file.Name(), ".webm")) {
+		if strings.HasSuffix(file.Name(), urlHashStr+".mp4") {
 			filePath := filepath.Join(s.outputDir, file.Name())
-			// update last request time
-			if err := s.UpdateLastRequestTime(filePath); err != nil {
-				return "", err
+			// Verify file exists and is readable
+			if _, err := os.Stat(filePath); err == nil {
+				// update last request time
+				if err := s.UpdateLastRequestTime(filePath); err != nil {
+					return "", err
+				}
+				// Return the existing file path
+				return filePath, nil
 			}
-			//  and return the file path
-			return filePath, nil
 		}
 	}
 
 	// If video doesn't exist, proceed with download
+	outputTemplate := filepath.Join(s.outputDir, fmt.Sprintf("%%(title)s_%s.%%(ext)s", urlHashStr))
 	cmd := exec.Command("yt-dlp",
-		"-o", filepath.Join(s.outputDir, "%(title)s.%(ext)s"),
+		"-o", outputTemplate,
 		"--merge-output-format", "mp4", // Force output to be MP4
+		"--windows-filenames", // Only restrict characters that are illegal in Windows
 		"--no-playlist",
+		"--progress",  // Show download progress
+		"--newline",   // Force progress on new lines
+		"--no-colors", // Disable colors in output
 		url)
 
 	// Set up command output
@@ -104,27 +109,17 @@ func (s *YouTubeService) DownloadVideo(url string) (string, error) {
 		return "", fmt.Errorf("failed to read output directory: %v", err)
 	}
 
-	// Find the most recently created file
-	var latestFile string
-	var latestTime int64
+	// Find the file with our URL hash
 	for _, file := range files {
-		info, err := file.Info()
-		if err != nil {
-			continue
-		}
-		if info.ModTime().Unix() > latestTime {
-			latestTime = info.ModTime().Unix()
-			latestFile = filepath.Join(s.outputDir, info.Name())
+		if strings.HasSuffix(file.Name(), urlHashStr+".mp4") {
+			filePath := filepath.Join(s.outputDir, file.Name())
+			// Update last request time for the newly downloaded file
+			if err := s.UpdateLastRequestTime(filePath); err != nil {
+				return "", err
+			}
+			return filePath, nil
 		}
 	}
 
-	if latestFile == "" {
-		return "", fmt.Errorf("no downloaded file found")
-	}
-
-	// Update last request time for the newly downloaded file
-	if err := s.UpdateLastRequestTime(latestFile); err != nil {
-		return "", err
-	}
-	return latestFile, nil
+	return "", fmt.Errorf("no downloaded file found with hash %s", urlHashStr)
 }
