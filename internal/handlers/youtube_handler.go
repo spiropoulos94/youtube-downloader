@@ -165,12 +165,15 @@ func (h *YouTubeHandler) ServeVideo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Set headers
-	w.Header().Set("Content-Disposition", "attachment; filename=video.mp4")
+	// Extract the original filename from the path and escape it for Content-Disposition header
+	downloadFileName := h.youtubeService.GetOriginalFilename(payload.FilePath, true)
+
+	// Set headers with the original title for the download
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, downloadFileName))
 	w.Header().Set("Content-Type", "video/mp4")
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", fileInfo.Size()))
 
-	log.Printf("Serving video: ID=%s, File=%s", taskID, payload.FilePath)
+	log.Printf("Serving video: ID=%s, File=%s, Title=%s", taskID, payload.FilePath, downloadFileName)
 
 	// This was needed to decrement the reference count of the file
 	// but now that we have Redis key expiration, we don't need it anymore

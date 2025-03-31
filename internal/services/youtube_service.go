@@ -123,3 +123,27 @@ func (s *YouTubeService) DownloadVideo(url string) (string, error) {
 
 	return "", fmt.Errorf("no downloaded file found with hash %s", urlHashStr)
 }
+
+// GetOriginalFilename extracts the original title from a downloaded video filename.
+// The format is expected to be "title_hash.mp4", and this function returns "title.mp4".
+// If escape is true, it also escapes special characters for use in Content-Disposition headers.
+func (s *YouTubeService) GetOriginalFilename(filePath string, escape bool) string {
+	fileName := filepath.Base(filePath)
+	// Remove the hash part to get just the title portion
+	lastUnderscore := strings.LastIndex(fileName, "_")
+	titlePart := fileName
+	if lastUnderscore != -1 {
+		titlePart = fileName[:lastUnderscore]
+	}
+	// Ensure the extension is preserved
+	if !strings.HasSuffix(titlePart, ".mp4") {
+		titlePart += ".mp4"
+	}
+
+	if escape {
+		// Escape double quotes for Content-Disposition header
+		titlePart = strings.ReplaceAll(titlePart, `"`, `\"`)
+	}
+
+	return titlePart
+}
