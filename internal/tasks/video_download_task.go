@@ -28,10 +28,13 @@ const (
 )
 
 type VideoDownloadPayload struct {
-	URL      string     `json:"url"`
-	FilePath string     `json:"file_path,omitempty"`
-	Status   TaskStatus `json:"status"`
-	Error    string     `json:"error,omitempty"`
+	URL          string     `json:"url"`
+	FilePath     string     `json:"file_path,omitempty"`
+	Status       TaskStatus `json:"status"`
+	Error        string     `json:"error,omitempty"`
+	Title        string     `json:"title,omitempty"`
+	ThumbnailURL string     `json:"thumbnail_url,omitempty"`
+	Duration     string     `json:"duration,omitempty"`
 }
 
 func NewVideoDownloadTask(url string) (*asynq.Task, error) {
@@ -164,7 +167,8 @@ func (processor *VideoDownloadProcessor) ProcessTask(ctx context.Context, t *asy
 
 	log.Printf("Downloading video from %s...", p.URL)
 
-	filePath, err := processor.youtubeService.DownloadVideo(p.URL)
+	// Download video, which now also returns metadata
+	videoData, err := processor.youtubeService.DownloadVideo(p.URL)
 	if err != nil {
 		log.Printf("Error downloading video: %v", err)
 		p.Status = TaskStatusFailed
@@ -175,6 +179,13 @@ func (processor *VideoDownloadProcessor) ProcessTask(ctx context.Context, t *asy
 		}
 		return fmt.Errorf("failed to download video: %v", err)
 	}
+
+	// Update payload with metadata from the download process
+	p.Title = videoData.Title
+	p.ThumbnailURL = videoData.ThumbnailURL
+	p.Duration = videoData.Duration
+
+	filePath := videoData.FilePath
 
 	// If the file is a temporary file, wait for it to be processed
 	if isTemporaryFile(filePath) {

@@ -19,7 +19,14 @@ import YouTubeIcon from "@mui/icons-material/YouTube";
 
 interface DownloadableProps {
   video: DownloadableVideo;
-  onStatusUpdate: (taskId: string, status: TaskStatus, error?: string) => void;
+  onStatusUpdate: (
+    taskId: string,
+    status: TaskStatus,
+    error?: string,
+    title?: string,
+    thumbnailUrl?: string,
+    duration?: string
+  ) => void;
   onDelete: () => void;
 }
 
@@ -90,8 +97,29 @@ const Downloadable: React.FC<DownloadableProps> = ({
         status = TaskStatus.TaskStatusPending;
       }
 
-      if (status !== video.status) {
-        onStatusUpdate(video.taskId, status, response.error);
+      // Update the local state with metadata
+      const updatedVideo = {
+        ...video,
+        status,
+        error: response.error,
+        title: response.title,
+        thumbnailUrl: response.thumbnail_url,
+        duration: response.duration,
+      };
+
+      if (
+        status !== video.status ||
+        updatedVideo.title !== video.title ||
+        updatedVideo.thumbnailUrl !== video.thumbnailUrl
+      ) {
+        onStatusUpdate(
+          video.taskId,
+          status,
+          response.error,
+          response.title,
+          response.thumbnail_url,
+          response.duration
+        );
       }
 
       if (
@@ -186,13 +214,28 @@ const Downloadable: React.FC<DownloadableProps> = ({
           </Box>
         ) : (
           <>
-            <YouTubeIcon
-              sx={{
-                fontSize: 60,
-                mb: 2,
-                color: "primary.main",
-              }}
-            />
+            {video.thumbnailUrl ? (
+              <Box
+                component="img"
+                src={video.thumbnailUrl}
+                alt={video.title || "YouTube Video"}
+                sx={{
+                  width: "100%",
+                  maxHeight: 160,
+                  objectFit: "cover",
+                  borderRadius: 1,
+                  mb: 2,
+                }}
+              />
+            ) : (
+              <YouTubeIcon
+                sx={{
+                  fontSize: 60,
+                  mb: 2,
+                  color: "primary.main",
+                }}
+              />
+            )}
             <Typography
               variant="h6"
               component="div"
@@ -201,10 +244,25 @@ const Downloadable: React.FC<DownloadableProps> = ({
               sx={{
                 color: "text.primary",
                 fontWeight: 600,
+                // Ensure long titles don't overflow
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                display: "-webkit-box",
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: "vertical",
               }}
             >
-              {getVideoId(video.url)}
+              {video.title || getVideoId(video.url)}
             </Typography>
+            {video.duration && (
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mt: -1, mb: 1 }}
+              >
+                Duration: {video.duration}
+              </Typography>
+            )}
           </>
         )}
 

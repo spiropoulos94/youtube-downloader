@@ -164,11 +164,23 @@ const App: React.FC = () => {
   const handleStatusUpdate = (
     taskId: string,
     status: TaskStatus,
-    error?: string
+    error?: string,
+    title?: string,
+    thumbnailUrl?: string,
+    duration?: string
   ) => {
     setVideos((prev) =>
       prev.map((video) =>
-        video.taskId === taskId ? { ...video, status, error } : video
+        video.taskId === taskId
+          ? {
+              ...video,
+              status,
+              error,
+              title,
+              thumbnailUrl,
+              duration,
+            }
+          : video
       )
     );
   };

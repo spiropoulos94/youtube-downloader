@@ -20,6 +20,9 @@ export interface TaskStatusResponseData {
   status: TaskStatus;
   file_path?: string;
   error?: string;
+  title?: string;
+  thumbnail_url?: string;
+  duration?: string;
 }
 
 export interface TaskStatusResponse {
@@ -32,4 +35,7 @@ export interface DownloadableVideo {
   url: string;
   status: TaskStatus;
   error?: string;
+  title?: string;
+  thumbnailUrl?: string;
+  duration?: string;
 }

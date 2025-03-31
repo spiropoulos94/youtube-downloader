@@ -18,3 +18,8 @@ func GetFilePathFromKey(key string) string {
 	}
 	return strings.TrimPrefix(key, prefix)
 }
+
+// GetMetadataKey returns the Redis key for a video's metadata
+func GetMetadataKey(filePath string) string {
+	return fmt.Sprintf("video:metadata:%s", filePath)
+}

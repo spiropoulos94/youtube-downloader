@@ -41,9 +41,12 @@ type DownloadResponse struct {
 }
 
 type TaskStatusResponse struct {
-	Status   tasks.TaskStatus `json:"status"`
-	FilePath string           `json:"file_path,omitempty"`
-	Error    string           `json:"error,omitempty"`
+	Status       tasks.TaskStatus `json:"status"`
+	FilePath     string           `json:"file_path,omitempty"`
+	Error        string           `json:"error,omitempty"`
+	Title        string           `json:"title,omitempty"`
+	ThumbnailURL string           `json:"thumbnail_url,omitempty"`
+	Duration     string           `json:"duration,omitempty"`
 }
 
 func (h *YouTubeHandler) DownloadVideo(w http.ResponseWriter, r *http.Request) {
@@ -108,9 +111,12 @@ func (h *YouTubeHandler) GetTaskStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := TaskStatusResponse{
-		Status:   payload.Status,
-		FilePath: payload.FilePath,
-		Error:    payload.Error,
+		Status:       payload.Status,
+		FilePath:     payload.FilePath,
+		Error:        payload.Error,
+		Title:        payload.Title,
+		ThumbnailURL: payload.ThumbnailURL,
+		Duration:     payload.Duration,
 	}
 
 	httputils.SendJSON(w, http.StatusOK, response)

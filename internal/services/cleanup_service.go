@@ -39,7 +39,7 @@ func (s *CleanupService) Stop() {
 
 // runCleanupLoop runs the cleanup process every 5 seconds
 func (s *CleanupService) runCleanupLoop() {
-	ticker := time.NewTicker(30 * time.Minute)
+	ticker := time.NewTicker(24 * time.Hour)
 	defer ticker.Stop()
 
 	for {
@@ -122,7 +122,7 @@ func (s *CleanupService) cleanup() error {
 	return nil
 }
 
-// deleteFile deletes a file and its associated Redis key
+// deleteFile deletes a file and its associated Redis keys (last request and metadata)
 func (s *CleanupService) deleteFile(filePath string) error {
 	ctx := context.Background()
 
@@ -132,9 +132,15 @@ func (s *CleanupService) deleteFile(filePath string) error {
 	}
 
 	// Delete the last request key
-	key := rediskeys.GetLastRequestKey(filePath)
-	if err := s.redis.Del(ctx, key).Err(); err != nil {
-		log.Printf("Error deleting Redis key %s: %v", key, err)
+	lastRequestKey := rediskeys.GetLastRequestKey(filePath)
+	if err := s.redis.Del(ctx, lastRequestKey).Err(); err != nil {
+		log.Printf("Error deleting Redis key %s: %v", lastRequestKey, err)
+	}
+
+	// Delete the metadata key
+	metadataKey := rediskeys.GetMetadataKey(filePath)
+	if err := s.redis.Del(ctx, metadataKey).Err(); err != nil {
+		log.Printf("Error deleting Redis metadata key %s: %v", metadataKey, err)
 	}
 
 	log.Printf("Successfully deleted file and associated data: %s", filePath)
