@@ -16,6 +16,7 @@ import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import ErrorIcon from "@mui/icons-material/Error";
 import DeleteIcon from "@mui/icons-material/Delete";
 import YouTubeIcon from "@mui/icons-material/YouTube";
+import axios from "axios";
 
 interface DownloadableProps {
   video: DownloadableVideo;
@@ -134,6 +135,18 @@ const Downloadable: React.FC<DownloadableProps> = ({
       }
     } catch (error) {
       console.error("Error polling task status:", error);
+
+      // Check if it's a 404 error (task not found)
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        console.log("Task not found, removing downloadable:", video.taskId);
+        // Clear polling interval
+        if (pollingInterval) {
+          clearInterval(pollingInterval);
+          setPollingInterval(null);
+        }
+        // Remove this downloadable from the UI
+        onDelete();
+      }
     }
   };
 

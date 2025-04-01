@@ -2,6 +2,7 @@ package workers
 
 import (
 	"log"
+	"spiropoulos94/youtube-downloader/internal/config"
 	"spiropoulos94/youtube-downloader/internal/services"
 	"spiropoulos94/youtube-downloader/internal/tasks"
 	"time"
@@ -12,6 +13,7 @@ import (
 
 // Manager handles the Asynq worker server and task processing
 type Manager struct {
+	config         *config.Config
 	client         *asynq.Client
 	server         *asynq.Server
 	inspector      *asynq.Inspector
@@ -20,19 +22,28 @@ type Manager struct {
 }
 
 // NewManager creates a new worker manager
-func NewManager(redis *redis.Client, youtubeService *services.YouTubeService) *Manager {
+func NewManager(config *config.Config, youtubeService *services.YouTubeService) *Manager {
+	redis := redis.NewClient(&redis.Options{
+		Addr: config.RedisAddr,
+	})
+
 	redisOpt := asynq.RedisClientOpt{
 		Addr: redis.Options().Addr,
 	}
 
-	client := asynq.NewClient(redisOpt)
-	server := asynq.NewServer(redisOpt, asynq.Config{
+	// Create an Asynq server with configuration options
+	serverOpts := asynq.Config{
 		Concurrency:         10,
-		HealthCheckInterval: 3 * time.Second,
-	})
+		HealthCheckInterval: 5 * time.Second,
+		// Can add other asynq server configurations here
+	}
+
+	client := asynq.NewClient(redisOpt)
+	server := asynq.NewServer(redisOpt, serverOpts)
 	inspector := asynq.NewInspector(redisOpt)
 
 	return &Manager{
+		config:         config,
 		client:         client,
 		server:         server,
 		inspector:      inspector,

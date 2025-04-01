@@ -11,23 +11,23 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"spiropoulos94/youtube-downloader/internal/config"
+	"spiropoulos94/youtube-downloader/internal/rediskeys"
 	"strings"
 	"time"
-
-	"spiropoulos94/youtube-downloader/internal/rediskeys"
 
 	"github.com/redis/go-redis/v9"
 )
 
 type YouTubeService struct {
-	outputDir string
-	redis     *redis.Client
+	config *config.Config
+	redis  *redis.Client
 }
 
-func NewYouTubeService(outputDir string, redis *redis.Client) *YouTubeService {
+func NewYouTubeService(config *config.Config, redis *redis.Client) *YouTubeService {
 	return &YouTubeService{
-		outputDir: outputDir,
-		redis:     redis,
+		config: config,
+		redis:  redis,
 	}
 }
 
@@ -37,7 +37,7 @@ func (s *YouTubeService) UpdateLastRequestTime(filePath string) error {
 	key := rediskeys.GetLastRequestKey(filePath)
 	now := time.Now().Format(time.RFC3339)
 
-	if err := s.redis.Set(ctx, key, now, 1*time.Hour).Err(); err != nil {
+	if err := s.redis.Set(ctx, key, now, s.config.TaskRetention).Err(); err != nil {
 		return fmt.Errorf("failed to update last request time: %v", err)
 	}
 	return nil
@@ -60,7 +60,7 @@ type VideoData struct {
 // DownloadVideo downloads a video from YouTube and returns the file path and metadata in a single operation
 func (s *YouTubeService) DownloadVideo(url string) (*VideoData, error) {
 	// Create output directory if it doesn't exist
-	if err := os.MkdirAll(s.outputDir, 0755); err != nil {
+	if err := os.MkdirAll(s.config.OutputDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create output directory: %v", err)
 	}
 
@@ -73,7 +73,7 @@ func (s *YouTubeService) DownloadVideo(url string) (*VideoData, error) {
 	urlHashStr := s.GetURLHash(url)
 
 	// Check if video already exists
-	existingFiles, err := os.ReadDir(s.outputDir)
+	existingFiles, err := os.ReadDir(s.config.OutputDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read output directory: %v", err)
 	}
@@ -82,7 +82,7 @@ func (s *YouTubeService) DownloadVideo(url string) (*VideoData, error) {
 	for _, file := range existingFiles {
 		// check if the file name contains the url hash of the new video url
 		if strings.HasSuffix(file.Name(), urlHashStr+".mp4") {
-			filePath := filepath.Join(s.outputDir, file.Name())
+			filePath := filepath.Join(s.config.OutputDir, file.Name())
 			// Verify file exists and is readable
 			if _, err := os.Stat(filePath); err == nil {
 				// update last request time since the file already exists
@@ -122,7 +122,7 @@ func (s *YouTubeService) DownloadVideo(url string) (*VideoData, error) {
 
 	// If we need to download, get both metadata and download in one efficient operation
 	// First, set up output template
-	outputTemplate := filepath.Join(s.outputDir, fmt.Sprintf("%%(title)s_%s.%%(ext)s", urlHashStr))
+	outputTemplate := filepath.Join(s.config.OutputDir, fmt.Sprintf("%%(title)s_%s.%%(ext)s", urlHashStr))
 
 	// Combined process: first get metadata and then download
 	// This is the most efficient approach that requires just one yt-dlp process
@@ -204,7 +204,7 @@ func (s *YouTubeService) DownloadVideo(url string) (*VideoData, error) {
 
 	// At this point, the video has been downloaded
 	// Find the newly downloaded file
-	files, err := os.ReadDir(s.outputDir)
+	files, err := os.ReadDir(s.config.OutputDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read output directory: %v", err)
 	}
@@ -212,7 +212,7 @@ func (s *YouTubeService) DownloadVideo(url string) (*VideoData, error) {
 	// Find the file with our URL hash
 	for _, file := range files {
 		if strings.HasSuffix(file.Name(), urlHashStr+".mp4") {
-			filePath := filepath.Join(s.outputDir, file.Name())
+			filePath := filepath.Join(s.config.OutputDir, file.Name())
 			// Update last request time for the newly downloaded file
 			if err := s.UpdateLastRequestTime(filePath); err != nil {
 				return nil, err
@@ -239,18 +239,14 @@ func (s *YouTubeService) DownloadVideo(url string) (*VideoData, error) {
 func (s *YouTubeService) StoreMetadata(filePath string, metadata *VideoMetadata) error {
 	ctx := context.Background()
 	key := rediskeys.GetMetadataKey(filePath)
-
-	// Convert metadata to JSON
 	data, err := json.Marshal(metadata)
 	if err != nil {
 		return fmt.Errorf("failed to marshal metadata: %v", err)
 	}
 
-	// Store in Redis with the same expiration as the last request time (1 hour)
-	if err := s.redis.Set(ctx, key, data, 1*time.Hour).Err(); err != nil {
+	if err := s.redis.Set(ctx, key, data, s.config.TaskRetention).Err(); err != nil {
 		return fmt.Errorf("failed to store metadata: %v", err)
 	}
-
 	return nil
 }
 

@@ -6,24 +6,24 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"time"
-
+	"spiropoulos94/youtube-downloader/internal/config"
 	"spiropoulos94/youtube-downloader/internal/rediskeys"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 )
 
 type CleanupService struct {
-	outputDir string
-	redis     *redis.Client
-	stopChan  chan struct{}
+	config   *config.Config
+	redis    *redis.Client
+	stopChan chan struct{}
 }
 
-func NewCleanupService(outputDir string, redis *redis.Client) *CleanupService {
+func NewCleanupService(config *config.Config, redis *redis.Client) *CleanupService {
 	return &CleanupService{
-		outputDir: outputDir,
-		redis:     redis,
-		stopChan:  make(chan struct{}),
+		config:   config,
+		redis:    redis,
+		stopChan: make(chan struct{}),
 	}
 }
 
@@ -37,10 +37,12 @@ func (s *CleanupService) Stop() {
 	close(s.stopChan)
 }
 
-// runCleanupLoop runs the cleanup process every 5 seconds
+// runCleanupLoop runs the cleanup process periodically based on config
 func (s *CleanupService) runCleanupLoop() {
-	ticker := time.NewTicker(24 * time.Hour)
+	ticker := time.NewTicker(s.config.TaskRetention)
 	defer ticker.Stop()
+
+	log.Printf("Starting cleanup service with interval: %s", s.config.TaskRetention)
 
 	for {
 		select {
@@ -85,13 +87,13 @@ func (s *CleanupService) cleanup() error {
 	}
 
 	// Then check for files without Redis keys
-	files, err := os.ReadDir(s.outputDir)
+	files, err := os.ReadDir(s.config.OutputDir)
 	if err != nil {
 		return fmt.Errorf("failed to read output directory: %v", err)
 	}
 
 	for _, file := range files {
-		filePath := filepath.Join(s.outputDir, file.Name())
+		filePath := filepath.Join(s.config.OutputDir, file.Name())
 		_, err := file.Info()
 		if err != nil {
 			log.Printf("Error getting file info for %s: %v", filePath, err)

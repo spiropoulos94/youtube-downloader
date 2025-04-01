@@ -6,29 +6,37 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"spiropoulos94/youtube-downloader/internal/config"
 	"spiropoulos94/youtube-downloader/internal/httputils"
 	"spiropoulos94/youtube-downloader/internal/services"
 	"spiropoulos94/youtube-downloader/internal/tasks"
 	"spiropoulos94/youtube-downloader/internal/validators"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/hibiken/asynq"
 )
 
 type YouTubeHandler struct {
+	config         *config.Config
 	youtubeService *services.YouTubeService
-	client         *asynq.Client
-	inspector      *asynq.Inspector
+	asynqClient    *asynq.Client
+	asynqInspector *asynq.Inspector
 	urlValidator   *validators.YouTubeURLValidator
 }
 
-func NewYouTubeHandler(youtubeService *services.YouTubeService, client *asynq.Client, inspector *asynq.Inspector) *YouTubeHandler {
+func NewYouTubeHandler(
+	config *config.Config,
+	youtubeService *services.YouTubeService,
+	asynqClient *asynq.Client,
+	asynqInspector *asynq.Inspector,
+	urlValidator *validators.YouTubeURLValidator,
+) *YouTubeHandler {
 	return &YouTubeHandler{
+		config:         config,
 		youtubeService: youtubeService,
-		client:         client,
-		inspector:      inspector,
-		urlValidator:   validators.NewYouTubeURLValidator(),
+		asynqClient:    asynqClient,
+		asynqInspector: asynqInspector,
+		urlValidator:   urlValidator,
 	}
 }
 
@@ -73,14 +81,14 @@ func (h *YouTubeHandler) DownloadVideo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// keep task in queue for 1 hour so that it can be accessed even after its completed
-	info, err := h.client.Enqueue(task, asynq.Retention(1*time.Hour))
+	// keep task in queue using the configured retention time
+	info, err := h.asynqClient.Enqueue(task, asynq.Retention(h.config.TaskRetention))
 	if err != nil {
 		httputils.SendError(w, httputils.NewError(http.StatusInternalServerError, "Failed to enqueue task"))
 		return
 	}
 
-	log.Printf("Task enqueued: ID=%s, URL=%s", info.ID, req.URL)
+	log.Printf("Task enqueued: ID=%s, URL=%s, Retention: %s", info.ID, req.URL, h.config.TaskRetention)
 	httputils.SendJSON(w, http.StatusAccepted, DownloadResponse{TaskID: info.ID})
 }
 
@@ -96,7 +104,7 @@ func (h *YouTubeHandler) GetTaskStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	info, err := h.inspector.GetTaskInfo("default", taskID)
+	info, err := h.asynqInspector.GetTaskInfo("default", taskID)
 	if err != nil {
 		log.Printf("Task not found: ID=%s", taskID)
 		httputils.SendError(w, httputils.ErrNotFound)
@@ -134,7 +142,7 @@ func (h *YouTubeHandler) ServeVideo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	info, err := h.inspector.GetTaskInfo("default", taskID)
+	info, err := h.asynqInspector.GetTaskInfo("default", taskID)
 	if err != nil {
 		log.Printf("Task not found: ID=%s", taskID)
 		httputils.SendError(w, httputils.ErrNotFound)
@@ -180,20 +188,6 @@ func (h *YouTubeHandler) ServeVideo(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", fileInfo.Size()))
 
 	log.Printf("Serving video: ID=%s, File=%s, Title=%s", taskID, payload.FilePath, downloadFileName)
-
-	// This was needed to decrement the reference count of the file
-	// but now that we have Redis key expiration, we don't need it anymore
-	// Old implementation: deleted the file from the server when the file was downloaded
-
-	// Create cleanup function
-	// cleanup := func() {
-	// 	// No need to do anything on cleanup since Redis key expiration handles it
-	// }
-
-	// http.ServeContent(w, r, fileInfo.Name(), fileInfo.ModTime(), cleanupReader)
-
-	// Create cleanup reader that will run the cleanup function when the reader is closed aka when the file is downloaded
-	// cleanupReader := httputils.NewCleanupReader(file, cleanup)
 
 	// Serve the file
 	http.ServeContent(w, r, fileInfo.Name(), fileInfo.ModTime(), file)

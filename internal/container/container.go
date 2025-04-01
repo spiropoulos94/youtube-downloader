@@ -6,6 +6,7 @@ import (
 	"spiropoulos94/youtube-downloader/internal/handlers"
 	"spiropoulos94/youtube-downloader/internal/router"
 	"spiropoulos94/youtube-downloader/internal/services"
+	"spiropoulos94/youtube-downloader/internal/validators"
 	"spiropoulos94/youtube-downloader/internal/workers"
 
 	"github.com/redis/go-redis/v9"
@@ -33,20 +34,29 @@ func InitContainer() (*Container, error) {
 
 // NewContainer creates a new container with the given configuration and dependencies
 func NewContainer(config *config.Config) *Container {
-	// Create Redis client
+	// Create Redis client for services that might still need direct access
 	redis := redis.NewClient(&redis.Options{
 		Addr: config.RedisAddr,
 	})
 
-	// Create services
-	youtubeService := services.NewYouTubeService(config.OutputDir, redis)
-	cleanupService := services.NewCleanupService(config.OutputDir, redis)
+	// Create core services
+	youtubeService := services.NewYouTubeService(config, redis)
+	cleanupService := services.NewCleanupService(config, redis)
 
-	// Create worker manager
-	workerManager := workers.NewManager(redis, youtubeService)
+	// Create worker manager with dependencies
+	workerManager := workers.NewManager(config, youtubeService)
 
-	// Create handlers
-	youtubeHandler := handlers.NewYouTubeHandler(youtubeService, workerManager.GetClient(), workerManager.GetInspector())
+	// Create validators
+	urlValidator := validators.NewYouTubeURLValidator()
+
+	// Create handlers with direct dependencies
+	youtubeHandler := handlers.NewYouTubeHandler(
+		config,
+		youtubeService,
+		workerManager.GetClient(),
+		workerManager.GetInspector(),
+		urlValidator,
+	)
 
 	return &Container{
 		config:        config,
