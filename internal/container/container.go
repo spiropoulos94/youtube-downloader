@@ -1,6 +1,8 @@
 package container
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 	"spiropoulos94/youtube-downloader/internal/config"
 	"spiropoulos94/youtube-downloader/internal/handlers"
@@ -26,6 +28,12 @@ type Container struct {
 func InitContainer() (*Container, error) {
 	cfg := config.Load()
 	container := NewContainer(cfg)
+
+	// Check Redis connectivity
+	if err := container.redis.Ping(context.Background()).Err(); err != nil {
+		return nil, fmt.Errorf("failed to connect to Redis at %s: %v", cfg.RedisAddr, err)
+	}
+
 	if err := container.Build(); err != nil {
 		return nil, err
 	}
@@ -58,10 +66,12 @@ func NewContainer(config *config.Config) *Container {
 		urlValidator,
 	)
 
+	frontendHandler := handlers.NewFrontendHandler("frontend/build")
+
 	return &Container{
 		config:        config,
 		services:      &services.Services{YouTube: youtubeService, Cleanup: cleanupService},
-		handlers:      &handlers.Handlers{YouTube: youtubeHandler},
+		handlers:      &handlers.Handlers{YouTube: youtubeHandler, Frontend: frontendHandler},
 		workerManager: workerManager,
 		redis:         redis,
 	}
