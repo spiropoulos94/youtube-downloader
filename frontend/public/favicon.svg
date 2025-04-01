@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Background with rounded corners -->
+  <rect x="0" y="0" width="64" height="64" rx="12" fill="#FF0000"/>
+  <!-- Download arrow: vertical line -->
+  <path d="M32 16 L32 38" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"/>
+  <!-- Download arrowhead -->
+  <path d="M24 30 L32 38 L40 30" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Tray line representing the download target -->
+  <line x1="20" y1="46" x2="44" y2="46" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"/>
+</svg>

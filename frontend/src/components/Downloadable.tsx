@@ -175,16 +175,10 @@ const Downloadable: React.FC<DownloadableProps> = ({
   return (
     <StyledCard
       sx={{
-        bgcolor: isFailed
-          ? "error.light"
-          : isCompleted
+        bgcolor: isCompleted
           ? "#fff5f5" // Very light red for completed state
           : "#fff5f5", // Very light red for default state
-        borderColor: isFailed
-          ? "error.main"
-          : isCompleted
-          ? "primary.main"
-          : "divider",
+        borderColor: isCompleted ? "primary.main" : "divider",
         borderWidth: 1,
         borderStyle: "solid",
       }}
@@ -251,75 +245,38 @@ const Downloadable: React.FC<DownloadableProps> = ({
             )}
             <Typography
               variant="h6"
-              component="div"
-              align="center"
+              component="h2"
               gutterBottom
               sx={{
-                color: "text.primary",
+                textAlign: "center",
                 fontWeight: 600,
-                // Ensure long titles don't overflow
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                display: "-webkit-box",
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: "vertical",
+                mb: 1,
               }}
             >
-              {video.title || getVideoId(video.url)}
+              {video.title || "YouTube Video"}
             </Typography>
             {video.duration && (
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{ mt: -1, mb: 1 }}
-              >
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                 Duration: {video.duration}
               </Typography>
             )}
           </>
         )}
-
-        {isFailed && (
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              mt: 2,
-              color: "error.main",
-              bgcolor: "error.light",
-              p: 1,
-              borderRadius: 1,
-              width: "100%",
-              justifyContent: "center",
-            }}
-          >
-            <ErrorIcon sx={{ mr: 1 }} />
-            <Typography variant="body2" color="error" sx={{ fontWeight: 500 }}>
-              {video.error || "Download failed"}
-            </Typography>
-          </Box>
-        )}
       </CardContent>
 
-      {isCompleted && (
-        <CardActions sx={{ p: 2, pt: 0 }}>
+      <CardActions sx={{ justifyContent: "center", pb: 2 }}>
+        {isCompleted && (
           <Button
             variant="contained"
             color="primary"
             startIcon={<FileDownloadIcon />}
             onClick={handleDownload}
-            fullWidth
-            sx={{
-              borderRadius: 8,
-              "&:hover": {
-                bgcolor: "primary.dark",
-              },
-            }}
+            sx={{ borderRadius: 2 }}
           >
             Download
           </Button>
-        </CardActions>
-      )}
+        )}
+      </CardActions>
     </StyledCard>
   );
 };

@@ -1,15 +1,15 @@
 {
-  "short_name": "YouTube Downloader",
+  "short_name": "YT Downloader",
   "name": "YouTube Video Downloader",
   "icons": [
     {
-      "src": "favicon.ico",
-      "sizes": "64x64 32x32 24x24 16x16",
-      "type": "image/x-icon"
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
     }
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#000000",
+  "theme_color": "#FF0000",
   "background_color": "#ffffff"
 }

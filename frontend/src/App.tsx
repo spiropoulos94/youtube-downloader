@@ -98,6 +98,12 @@ const formatErrorMessage = (
       description: "Please enter a YouTube video URL to download.",
     };
   }
+  if (error.includes("yt-dlp is not installed")) {
+    return {
+      title: "Download Failed",
+      description: "Unable to download the video. Please try again later.",
+    };
+  }
   // Default error message
   return {
     title: "Error",
@@ -128,6 +134,16 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem("youtube-downloads", JSON.stringify(videos));
   }, [videos]);
+
+  // Clear error after 5 seconds when it's set
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => {
+        setError(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
 
   const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setUrl(e.target.value);
@@ -169,13 +185,26 @@ const App: React.FC = () => {
     thumbnailUrl?: string,
     duration?: string
   ) => {
+    if (error) {
+      setError(error);
+    }
+
+    // If the task failed with yt-dlp error, remove it from the list
+    if (
+      status === TaskStatus.TaskStatusFailed &&
+      error?.includes("yt-dlp is not installed")
+    ) {
+      setVideos((prev) => prev.filter((video) => video.taskId !== taskId));
+      return;
+    }
+
     setVideos((prev) =>
       prev.map((video) =>
         video.taskId === taskId
           ? {
               ...video,
               status,
-              error,
+              error: undefined, // Remove error from video object
               title,
               thumbnailUrl,
               duration,
@@ -323,17 +352,6 @@ const App: React.FC = () => {
               </Grid>
             </Box>
           )}
-
-          <Snackbar
-            open={!!error}
-            autoHideDuration={6000}
-            onClose={() => setError(null)}
-            anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-          >
-            <Alert severity="error" onClose={() => setError(null)}>
-              {error}
-            </Alert>
-          </Snackbar>
         </Container>
       </Box>
     </ThemeProvider>
