@@ -13,7 +13,6 @@ import {
 import { DownloadableVideo, TaskStatus } from "../types";
 import { getTaskStatus, getVideoDownloadUrl } from "../utils/api";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
-import ErrorIcon from "@mui/icons-material/Error";
 import DeleteIcon from "@mui/icons-material/Delete";
 import YouTubeIcon from "@mui/icons-material/YouTube";
 import axios from "axios";
@@ -63,24 +62,14 @@ const Downloadable: React.FC<DownloadableProps> = ({
   onStatusUpdate,
   onDelete,
 }) => {
-  const [loading, setLoading] = useState<boolean>(true);
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(
     null
   );
 
   const isCompleted = video.status === TaskStatus.TaskStatusCompleted;
-  const isFailed = video.status === TaskStatus.TaskStatusFailed;
   const isInProgress =
     video.status === TaskStatus.TaskStatusPending ||
     video.status === TaskStatus.TaskStatusInProgress;
-
-  const getVideoId = (url: string): string => {
-    try {
-      return url.split("v=")[1].split("&")[0] || "unknown";
-    } catch {
-      return "unknown";
-    }
-  };
 
   const pollTaskStatus = async () => {
     try {
@@ -131,7 +120,6 @@ const Downloadable: React.FC<DownloadableProps> = ({
           clearInterval(pollingInterval);
           setPollingInterval(null);
         }
-        setLoading(false);
       }
     } catch (error) {
       console.error("Error polling task status:", error);
@@ -163,8 +151,6 @@ const Downloadable: React.FC<DownloadableProps> = ({
       return () => {
         if (interval) clearInterval(interval);
       };
-    } else {
-      setLoading(false);
     }
   }, [video.taskId, video.status]); // eslint-disable-line react-hooks/exhaustive-deps
 
