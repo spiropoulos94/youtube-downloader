@@ -50,6 +50,7 @@ func NewContainer(config *config.Config) *Container {
 	// Create core services
 	youtubeService := services.NewYouTubeService(config, redis)
 	cleanupService := services.NewCleanupService(config, redis)
+	frontendService := services.NewFrontendService()
 
 	// Create worker manager with dependencies
 	workerManager := workers.NewManager(config, youtubeService)
@@ -65,12 +66,11 @@ func NewContainer(config *config.Config) *Container {
 		workerManager.GetInspector(),
 		urlValidator,
 	)
-
-	frontendHandler := handlers.NewFrontendHandler("frontend/build")
+	frontendHandler := handlers.NewFrontendHandler(frontendService)
 
 	return &Container{
 		config:        config,
-		services:      &services.Services{YouTube: youtubeService, Cleanup: cleanupService},
+		services:      &services.Services{YouTube: youtubeService, Cleanup: cleanupService, Frontend: frontendService},
 		handlers:      &handlers.Handlers{YouTube: youtubeHandler, Frontend: frontendHandler},
 		workerManager: workerManager,
 		redis:         redis,

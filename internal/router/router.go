@@ -31,13 +31,6 @@ func (r *Router) setupRoutes() {
 	r.router.Use(middleware.Logger)
 	r.router.Use(middleware.Recoverer)
 
-	// Asynqmon dashboard
-	asynqmonHandler := asynqmon.New(asynqmon.Options{
-		RedisConnOpt: r.workerManager.GetRedisOpt(),
-		RootPath:     "/monitoring", // RootPath specifies the root for asynqmon app
-	})
-	r.router.Get("/monitoring/*", asynqmonHandler.ServeHTTP)
-
 	// Routes
 	r.router.Route("/api", func(router chi.Router) {
 		// Download endpoint
@@ -55,6 +48,16 @@ func (r *Router) setupRoutes() {
 			w.Write([]byte("OK"))
 		})
 	})
+
+	// Asynqmon dashboard
+	asynqmonHandler := asynqmon.New(asynqmon.Options{
+		RedisConnOpt: r.workerManager.GetRedisOpt(),
+		RootPath:     "/monitoring", // RootPath specifies the root for asynqmon app
+	})
+	r.router.Mount("/monitoring", asynqmonHandler)
+
+	// Frontend handler for React app
+	r.router.Get("/*", r.handlers.Frontend.ServeHTTP)
 }
 
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {

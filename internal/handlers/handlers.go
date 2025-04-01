@@ -1,5 +1,6 @@
 package handlers
 
 type Handlers struct {
-	YouTube *YouTubeHandler
+	YouTube  *YouTubeHandler
+	Frontend *FrontendHandler
 }
