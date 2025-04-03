@@ -181,7 +181,8 @@ const App: React.FC = () => {
     error?: string,
     title?: string,
     thumbnailUrl?: string,
-    duration?: string
+    duration?: string,
+    downloadUrl?: string
   ) => {
     if (error) {
       setError(error);
@@ -206,6 +207,7 @@ const App: React.FC = () => {
               title,
               thumbnailUrl,
               duration,
+              downloadUrl,
             }
           : video
       )

@@ -1,0 +1,17 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+# cmd specifies the command to start building
+cmd = "go build -o ./youtube-downloader ./cmd/server"
+# binary file generated after building
+bin = "./youtube-downloader"
+# file extensions to watch for changes
+include_ext = ["go", "env"]
+# directories to exclude from watching
+exclude_dir = ["frontend", "node_modules", "downloads", "tmp", "vendor"]
+# delay before rebuilding after file changes
+delay = 1000
+
+[log]
+time = true 

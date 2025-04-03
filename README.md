@@ -1,6 +1,104 @@
-# YouTube Video Downloader
+# YouTube Downloader
 
-A Go application that allows you to download YouTube videos either through a command-line interface or a web server. The application always downloads videos in the best available quality.
+A web application for downloading YouTube videos.
+
+## Features
+
+- Download YouTube videos
+- View download status
+- Monitor task queue
+- Responsive UI
+
+## Running the Application
+
+There are two ways to run the application:
+
+### 1. Production Mode
+
+To run the complete application in production mode:
+
+1. Copy the environment file:
+
+   ```
+   cp .env.example .env
+   ```
+
+2. Build and run with Docker Compose:
+
+   ```
+   make build
+   docker-compose up
+   ```
+
+3. Access the application at http://localhost:8080
+
+### 2. Development Mode
+
+For active development with hot-reloading:
+
+#### Backend (with hot reloading)
+
+```bash
+cp .env.example .env
+make dev-backend
+```
+
+The backend API will be available at http://localhost:8080
+
+#### Frontend (with hot reloading)
+
+```bash
+make dev-frontend
+```
+
+The frontend will be available at http://localhost:3000
+
+## Architecture
+
+- **Frontend**: React.js application
+- **Backend**: Go server with Chi router
+- **Database**: Redis for task queue and status
+- **Video Processing**: yt-dlp for downloading videos
+
+## Monitoring
+
+A monitoring dashboard for the task queue is available at http://localhost:8080/monitoring
+
+## API Usage
+
+- YouTube API for video information
+- Redis for task queue management
+- File system for video storage
+
+## Tech Stack
+
+- **Frontend**: React.js
+- **Backend**: Go (Golang)
+- **Queue System**: Redis
+- **Docker**: Used for deployment and development
+
+## Environment Variables
+
+You can configure the application using environment variables:
+
+```env
+# Server Configuration
+PORT=8080                  # The port the server will listen on
+ENV=development            # Environment (development/production)
+BASE_URL=http://localhost:8080  # Base URL for generating absolute URLs (e.g., download links)
+
+# File Storage
+OUTPUT_DIR=/app/downloads  # Directory where videos will be saved
+
+# Redis Configuration
+REDIS_ADDR=redis:6379      # Redis server address
+
+# Data Retention
+TASK_RETENTION=24h         # How long to keep videos before cleanup (e.g., 24h, 7d)
+
+# Optional: Logging
+LOG_LEVEL=info             # Logging level (info, debug, error)
+```
 
 ## Prerequisites
 
@@ -33,6 +131,49 @@ A Go application that allows you to download YouTube videos either through a com
    ```
 
 3. (Optional) Modify the `.env` file with your preferred settings.
+
+## Development with Hot Reloading
+
+### Frontend Hot Reloading
+
+The frontend automatically includes hot reloading through React's development server when running with `make dev-frontend`.
+
+### Backend Hot Reloading with Air
+
+For backend development, there are two options for hot reloading with Air:
+
+#### Option 1: Using Docker (Recommended)
+
+When using `make dev-backend`, Air is already configured in the Docker container. The system uses:
+
+- Dockerfile.dev which installs Air and necessary dependencies
+- dev-start.sh script that sets up the Python virtual environment and runs Air
+- .air.toml configuration that watches your Go files and rebuilds on changes
+
+No additional setup is needed as everything is handled automatically.
+
+#### Option 2: Direct Local Development
+
+If you prefer to run the backend directly on your machine:
+
+1. Install Air:
+
+   ```bash
+   # Using Go
+   go install github.com/cosmtrek/air@latest
+
+   # Or using Homebrew on macOS
+   brew install air
+   ```
+
+2. The project includes an `.air.toml` configuration file
+
+3. Run Air:
+   ```bash
+   air
+   ```
+
+Both options will automatically rebuild and restart your Go server whenever you make changes to your code.
 
 ## Usage
 
@@ -105,7 +246,11 @@ Options:
      "success": true,
      "data": {
        "status": "completed",
-       "file_path": "/path/to/downloaded/video.mp4"
+       "file_path": "/path/to/downloaded/video.mp4",
+       "download_url": "http://localhost:8080/videos/550e8400-e29b-41d4-a716-446655440000",
+       "title": "Video Title",
+       "thumbnail_url": "https://i.ytimg.com/vi/video_id/maxresdefault.jpg",
+       "duration": "5:32"
      }
    }
    ```
@@ -115,32 +260,46 @@ Options:
    curl http://localhost:8080/api/health
    ```
 
-## Environment Variables
+## Cleaning Up
 
-You can configure the application using environment variables or command-line flags:
-
-```env
-PORT=8080
-OUTPUT_DIR=downloads
-ENV=development
-```
-
-Command-line flags take precedence over environment variables.
-
-## Development
-
-Run the server in development mode:
+To clean up all containers and volumes:
 
 ```bash
-go run cmd/server/main.go
+make clean
 ```
 
-Run the CLI:
+## Deployment
 
-```bash
-go run cmd/cli/main.go -url "https://www.youtube.com/watch?v=..."
+For deployment to production:
+
+1. Build the production Docker images:
+
+   ```bash
+   make build
+   ```
+
+2. You can deploy the built images to any container hosting service (Docker Swarm, Kubernetes, etc.)
+
+3. For simple deployments:
+   ```bash
+   docker-compose up -d
+   ```
+
+## URL Configuration
+
+The application uses the `BASE_URL` environment variable to generate absolute URLs for video downloads. This ensures correct URL generation in various deployment scenarios:
+
+- **Development**: `BASE_URL=http://localhost:8080`
+- **Production**: `BASE_URL=https://yourdomain.com` or `BASE_URL=https://api.yourdomain.com`
+
+If your application is deployed at a subpath, include it in the BASE_URL:
+
+```
+BASE_URL=https://yourdomain.com/youtube-downloader
 ```
 
-## License
+This configuration is especially important when:
 
-MIT License
+- The application is behind a reverse proxy or load balancer
+- You're using HTTPS terminated at the proxy level
+- The internal server URL differs from the public-facing URL

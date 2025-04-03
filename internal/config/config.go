@@ -12,6 +12,7 @@ type Config struct {
 	Env           string
 	RedisAddr     string
 	TaskRetention time.Duration
+	BaseURL       string
 }
 
 func Load() *Config {
@@ -21,6 +22,7 @@ func Load() *Config {
 	env := flag.String("env", getEnvOrDefault("ENV", "development"), "Environment (development/production)")
 	redisAddr := flag.String("redis", getEnvOrDefault("REDIS_ADDR", "localhost:6379"), "Redis server address")
 	taskRetention := flag.Duration("task-retention", getTaskRetentionFromEnv(), "Task retention period in hours")
+	baseURL := flag.String("base-url", getEnvOrDefault("BASE_URL", ""), "Base URL for generating absolute URLs")
 	flag.Parse()
 
 	return &Config{
@@ -29,6 +31,7 @@ func Load() *Config {
 		Env:           *env,
 		RedisAddr:     *redisAddr,
 		TaskRetention: *taskRetention,
+		BaseURL:       *baseURL,
 	}
 }
 

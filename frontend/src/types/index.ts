@@ -19,6 +19,7 @@ export interface DownloadResponse {
 export interface TaskStatusResponseData {
   status: TaskStatus;
   file_path?: string;
+  download_url?: string;
   error?: string;
   title?: string;
   thumbnail_url?: string;
@@ -38,4 +39,5 @@ export interface DownloadableVideo {
   title?: string;
   thumbnailUrl?: string;
   duration?: string;
+  downloadUrl?: string;
 }

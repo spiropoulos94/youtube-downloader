@@ -25,7 +25,8 @@ interface DownloadableProps {
     error?: string,
     title?: string,
     thumbnailUrl?: string,
-    duration?: string
+    duration?: string,
+    downloadUrl?: string
   ) => void;
   onDelete: () => void;
 }
@@ -65,6 +66,7 @@ const Downloadable: React.FC<DownloadableProps> = ({
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(
     null
   );
+  const [downloadUrl, setDownloadUrl] = useState<string | undefined>(undefined);
 
   const isCompleted = video.status === TaskStatus.TaskStatusCompleted;
   const isInProgress =
@@ -79,6 +81,9 @@ const Downloadable: React.FC<DownloadableProps> = ({
 
       if (statusValue === "completed") {
         status = TaskStatus.TaskStatusCompleted;
+        if (response.download_url) {
+          setDownloadUrl(response.download_url);
+        }
       } else if (statusValue === "failed") {
         status = TaskStatus.TaskStatusFailed;
       } else if (statusValue === "in_progress") {
@@ -87,7 +92,6 @@ const Downloadable: React.FC<DownloadableProps> = ({
         status = TaskStatus.TaskStatusPending;
       }
 
-      // Update the local state with metadata
       const updatedVideo = {
         ...video,
         status,
@@ -108,7 +112,8 @@ const Downloadable: React.FC<DownloadableProps> = ({
           response.error,
           response.title,
           response.thumbnail_url,
-          response.duration
+          response.duration,
+          response.download_url
         );
       }
 
@@ -124,15 +129,12 @@ const Downloadable: React.FC<DownloadableProps> = ({
     } catch (error) {
       console.error("Error polling task status:", error);
 
-      // Check if it's a 404 error (task not found)
       if (axios.isAxiosError(error) && error.response?.status === 404) {
         console.log("Task not found, removing downloadable:", video.taskId);
-        // Clear polling interval
         if (pollingInterval) {
           clearInterval(pollingInterval);
           setPollingInterval(null);
         }
-        // Remove this downloadable from the UI
         onDelete();
       }
     }
@@ -155,7 +157,8 @@ const Downloadable: React.FC<DownloadableProps> = ({
   }, [video.taskId, video.status]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDownload = () => {
-    window.location.href = getVideoDownloadUrl(video.taskId);
+    console.log("downloadUrl", downloadUrl);
+    window.location.href = downloadUrl || getVideoDownloadUrl(video.taskId);
   };
 
   return (

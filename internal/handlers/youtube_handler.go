@@ -51,6 +51,7 @@ type DownloadResponse struct {
 type TaskStatusResponse struct {
 	Status       tasks.TaskStatus `json:"status"`
 	FilePath     string           `json:"file_path,omitempty"`
+	DownloadURL  string           `json:"download_url,omitempty"`
 	Error        string           `json:"error,omitempty"`
 	Title        string           `json:"title,omitempty"`
 	ThumbnailURL string           `json:"thumbnail_url,omitempty"`
@@ -125,6 +126,22 @@ func (h *YouTubeHandler) GetTaskStatus(w http.ResponseWriter, r *http.Request) {
 		Title:        payload.Title,
 		ThumbnailURL: payload.ThumbnailURL,
 		Duration:     payload.Duration,
+	}
+
+	// Add download URL if the task is completed and we have a file path
+	if payload.Status == tasks.TaskStatusCompleted && payload.FilePath != "" {
+		// Use the configured BaseURL if available
+		if h.config.BaseURL != "" {
+			response.DownloadURL = fmt.Sprintf("%s/videos/%s", h.config.BaseURL, taskID)
+		} else {
+			// Fallback: Construct the download URL using the host from the request
+			scheme := "http"
+			if r.TLS != nil {
+				scheme = "https"
+			}
+			host := r.Host
+			response.DownloadURL = fmt.Sprintf("%s://%s/videos/%s", scheme, host, taskID)
+		}
 	}
 
 	httputils.SendJSON(w, http.StatusOK, response)
