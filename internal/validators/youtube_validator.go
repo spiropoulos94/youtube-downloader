@@ -6,11 +6,11 @@ import (
 	"strings"
 )
 
-// YouTubeURLValidator handles validation of YouTube URLs
+// YouTubeURLValidator implements URLValidatorInterface
 type YouTubeURLValidator struct{}
 
 // NewYouTubeURLValidator creates a new instance of YouTubeURLValidator
-func NewYouTubeURLValidator() *YouTubeURLValidator {
+func NewYouTubeURLValidator() URLValidatorInterface {
 	return &YouTubeURLValidator{}
 }
 

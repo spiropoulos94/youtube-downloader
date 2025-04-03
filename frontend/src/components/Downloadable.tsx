@@ -68,6 +68,11 @@ const Downloadable: React.FC<DownloadableProps> = ({
   );
   const [downloadUrl, setDownloadUrl] = useState<string | undefined>(undefined);
 
+  // console.lg downloadURl on change
+  useEffect(() => {
+    console.log("downloadUrl", downloadUrl);
+  }, [downloadUrl]);
+
   const isCompleted = video.status === TaskStatus.TaskStatusCompleted;
   const isInProgress =
     video.status === TaskStatus.TaskStatusPending ||

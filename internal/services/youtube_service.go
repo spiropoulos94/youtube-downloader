@@ -19,12 +19,14 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+// YouTubeService implements YouTubeServiceInterface
 type YouTubeService struct {
 	config *config.Config
 	redis  *redis.Client
 }
 
-func NewYouTubeService(config *config.Config, redis *redis.Client) *YouTubeService {
+// NewYouTubeService creates a new instance of YouTubeService
+func NewYouTubeService(config *config.Config, redis *redis.Client) YouTubeServiceInterface {
 	return &YouTubeService{
 		config: config,
 		redis:  redis,

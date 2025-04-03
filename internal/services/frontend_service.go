@@ -6,14 +6,14 @@ import (
 	"path/filepath"
 )
 
-// FrontendService handles serving the React frontend
+// FrontendService implements FrontendServiceInterface
 type FrontendService struct {
 	frontendDir string
 	fileServer  http.Handler
 }
 
 // NewFrontendService creates a new FrontendService
-func NewFrontendService() *FrontendService {
+func NewFrontendService() FrontendServiceInterface {
 	workDir, _ := os.Getwd()
 	buildPath := filepath.Join(workDir, "frontend/build")
 

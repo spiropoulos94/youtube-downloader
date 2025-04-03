@@ -54,10 +54,10 @@ func NewVideoDownloadTask(url string) (*asynq.Task, error) {
 }
 
 type VideoDownloadProcessor struct {
-	youtubeService *services.YouTubeService
+	youtubeService services.YouTubeServiceInterface
 }
 
-func NewVideoDownloadProcessor(youtubeService *services.YouTubeService) *VideoDownloadProcessor {
+func NewVideoDownloadProcessor(youtubeService services.YouTubeServiceInterface) *VideoDownloadProcessor {
 	return &VideoDownloadProcessor{
 		youtubeService: youtubeService,
 	}

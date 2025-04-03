@@ -57,7 +57,7 @@ func (r *Router) setupRoutes() {
 	r.router.Mount("/monitoring", asynqmonHandler)
 
 	// Frontend handler for React app
-	r.router.Get("/*", r.handlers.Frontend.ServeHTTP)
+	r.router.Get("/*", r.handlers.Frontend.ServeFrontend)
 }
 
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {

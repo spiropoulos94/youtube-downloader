@@ -5,19 +5,21 @@ import (
 	"spiropoulos94/youtube-downloader/internal/services"
 )
 
-// FrontendHandler handles requests for the React frontend
+// FrontendHandler implements FrontendHandlerInterface
 type FrontendHandler struct {
-	frontendService *services.FrontendService
+	frontendService services.FrontendServiceInterface
 }
 
-// NewFrontendHandler creates a new FrontendHandler
-func NewFrontendHandler(frontendService *services.FrontendService) *FrontendHandler {
+// NewFrontendHandler creates a new instance of FrontendHandler
+func NewFrontendHandler(
+	frontendService services.FrontendServiceInterface,
+) FrontendHandlerInterface {
 	return &FrontendHandler{
 		frontendService: frontendService,
 	}
 }
 
-// ServeHTTP is the handler function that serves the React frontend
-func (h *FrontendHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+// ServeFrontend serves the frontend application
+func (h *FrontendHandler) ServeFrontend(w http.ResponseWriter, r *http.Request) {
 	h.frontendService.ServeStaticFiles(w, r)
 }

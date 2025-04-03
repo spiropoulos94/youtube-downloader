@@ -16,21 +16,23 @@ import (
 	"github.com/hibiken/asynq"
 )
 
+// YouTubeHandler implements YouTubeHandlerInterface
 type YouTubeHandler struct {
 	config         *config.Config
-	youtubeService *services.YouTubeService
+	youtubeService services.YouTubeServiceInterface
 	asynqClient    *asynq.Client
 	asynqInspector *asynq.Inspector
-	urlValidator   *validators.YouTubeURLValidator
+	urlValidator   validators.URLValidatorInterface
 }
 
+// NewYouTubeHandler creates a new instance of YouTubeHandler
 func NewYouTubeHandler(
 	config *config.Config,
-	youtubeService *services.YouTubeService,
+	youtubeService services.YouTubeServiceInterface,
 	asynqClient *asynq.Client,
 	asynqInspector *asynq.Inspector,
-	urlValidator *validators.YouTubeURLValidator,
-) *YouTubeHandler {
+	urlValidator validators.URLValidatorInterface,
+) YouTubeHandlerInterface {
 	return &YouTubeHandler{
 		config:         config,
 		youtubeService: youtubeService,
@@ -132,7 +134,7 @@ func (h *YouTubeHandler) GetTaskStatus(w http.ResponseWriter, r *http.Request) {
 	if payload.Status == tasks.TaskStatusCompleted && payload.FilePath != "" {
 		// Use the configured BaseURL if available
 		if h.config.BaseURL != "" {
-			response.DownloadURL = fmt.Sprintf("%s/videos/%s", h.config.BaseURL, taskID)
+			response.DownloadURL = fmt.Sprintf("%s/api/videos/%s", h.config.BaseURL, taskID)
 		} else {
 			// Fallback: Construct the download URL using the host from the request
 			scheme := "http"
@@ -140,7 +142,7 @@ func (h *YouTubeHandler) GetTaskStatus(w http.ResponseWriter, r *http.Request) {
 				scheme = "https"
 			}
 			host := r.Host
-			response.DownloadURL = fmt.Sprintf("%s://%s/videos/%s", scheme, host, taskID)
+			response.DownloadURL = fmt.Sprintf("%s://%s/api/videos/%s", scheme, host, taskID)
 		}
 	}
 

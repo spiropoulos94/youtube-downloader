@@ -13,13 +13,15 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+// CleanupService implements CleanupServiceInterface
 type CleanupService struct {
 	config   *config.Config
 	redis    *redis.Client
 	stopChan chan struct{}
 }
 
-func NewCleanupService(config *config.Config, redis *redis.Client) *CleanupService {
+// NewCleanupService creates a new CleanupService instance
+func NewCleanupService(config *config.Config, redis *redis.Client) CleanupServiceInterface {
 	return &CleanupService{
 		config:   config,
 		redis:    redis,
