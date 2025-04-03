@@ -102,8 +102,19 @@ REDIS_ADDR=redis:6379     # Redis server address
 
 - **Frontend**: React.js
 - **Backend**: Go with Chi router
-- **Queue**: Redis for task management
+- **Queue**: Redis with Asynq for concurrent task management
 - **Video Processing**: yt-dlp
+
+### Concurrent Downloads
+
+The application uses Asynq for background job processing, allowing you to:
+
+- Download multiple videos simultaneously
+- Monitor download progress in real-time
+- Queue downloads when the system is busy
+- Automatically retry failed downloads
+
+Each download runs as a separate task in the queue, with status updates available through the API.
 
 ## Monitoring
 
