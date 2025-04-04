@@ -18,7 +18,11 @@ RUN go mod download
 # Copy the Air configuration file
 COPY .air.toml .air.toml
 
+# Copy the dev-start script
+COPY dev-start.sh dev-start.sh
+RUN chmod +x dev-start.sh
+
 EXPOSE 8080
 
-# Run with hot reloading and virtual environment - the script is mounted from the host
+# Run with hot reloading
 CMD ["/app/dev-start.sh"] 

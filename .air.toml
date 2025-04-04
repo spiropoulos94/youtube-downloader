@@ -14,4 +14,5 @@ exclude_dir = ["frontend", "node_modules", "downloads", "tmp", "vendor"]
 delay = 1000
 
 [log]
-time = true 
+time = true
+main_only = false 
