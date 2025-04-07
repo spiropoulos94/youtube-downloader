@@ -169,7 +169,6 @@ const App: React.FC = () => {
       setUrl("");
     } catch (err: any) {
       setError(err.response?.data?.error || "Failed to download video");
-      console.error("Download error:", err);
     } finally {
       setLoading(false);
     }

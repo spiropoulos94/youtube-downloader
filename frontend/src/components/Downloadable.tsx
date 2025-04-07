@@ -9,12 +9,15 @@ import {
   Typography,
   IconButton,
   styled,
+  Link,
 } from "@mui/material";
 import { DownloadableVideo, TaskStatus } from "../types";
 import { getTaskStatus, getVideoDownloadUrl } from "../utils/api";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import DeleteIcon from "@mui/icons-material/Delete";
 import YouTubeIcon from "@mui/icons-material/YouTube";
+import ReplayIcon from "@mui/icons-material/Replay";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import axios from "axios";
 
 interface DownloadableProps {
@@ -68,11 +71,6 @@ const Downloadable: React.FC<DownloadableProps> = ({
   );
   const [downloadUrl, setDownloadUrl] = useState<string | undefined>(undefined);
 
-  // console.lg downloadURl on change
-  useEffect(() => {
-    console.log("downloadUrl", downloadUrl);
-  }, [downloadUrl]);
-
   const isCompleted = video.status === TaskStatus.TaskStatusCompleted;
   const isInProgress =
     video.status === TaskStatus.TaskStatusPending ||
@@ -87,7 +85,9 @@ const Downloadable: React.FC<DownloadableProps> = ({
       if (statusValue === "completed") {
         status = TaskStatus.TaskStatusCompleted;
         if (response.download_url) {
-          setDownloadUrl(response.download_url);
+          window.requestAnimationFrame(() => {
+            setDownloadUrl(response.download_url);
+          });
         }
       } else if (statusValue === "failed") {
         status = TaskStatus.TaskStatusFailed;
@@ -132,10 +132,7 @@ const Downloadable: React.FC<DownloadableProps> = ({
         }
       }
     } catch (error) {
-      console.error("Error polling task status:", error);
-
       if (axios.isAxiosError(error) && error.response?.status === 404) {
-        console.log("Task not found, removing downloadable:", video.taskId);
         if (pollingInterval) {
           clearInterval(pollingInterval);
           setPollingInterval(null);
@@ -162,7 +159,6 @@ const Downloadable: React.FC<DownloadableProps> = ({
   }, [video.taskId, video.status]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDownload = () => {
-    console.log("downloadUrl", downloadUrl);
     window.location.href = downloadUrl || getVideoDownloadUrl(video.taskId);
   };
 
@@ -258,16 +254,79 @@ const Downloadable: React.FC<DownloadableProps> = ({
         )}
       </CardContent>
 
-      <CardActions sx={{ justifyContent: "center", pb: 2 }}>
-        {isCompleted && (
+      <CardActions sx={{ p: 2, pt: 0 }}>
+        {video.status === TaskStatus.TaskStatusCompleted && (
           <Button
             variant="contained"
             color="primary"
+            fullWidth
             startIcon={<FileDownloadIcon />}
             onClick={handleDownload}
-            sx={{ borderRadius: 2 }}
+            sx={{
+              fontWeight: 600,
+              textTransform: "none",
+              boxShadow: 2,
+              "&:hover": {
+                transform: "translateY(-2px)",
+                boxShadow: 3,
+              },
+            }}
           >
             Download
+          </Button>
+        )}
+
+        {video.status === TaskStatus.TaskStatusFailed && (
+          <Button
+            variant="contained"
+            color="error"
+            fullWidth
+            startIcon={<ReplayIcon />}
+            onClick={() => {
+              onStatusUpdate(
+                video.taskId,
+                TaskStatus.TaskStatusPending,
+                undefined,
+                undefined,
+                undefined,
+                undefined,
+                undefined
+              );
+            }}
+            sx={{
+              fontWeight: 600,
+              textTransform: "none",
+              boxShadow: 2,
+              "&:hover": {
+                transform: "translateY(-2px)",
+                boxShadow: 3,
+              },
+            }}
+          >
+            Retry
+          </Button>
+        )}
+
+        {isCompleted && (
+          <Button
+            component={Link}
+            href={video.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            variant="outlined"
+            color="primary"
+            fullWidth
+            startIcon={<OpenInNewIcon />}
+            sx={{
+              mt: 1,
+              fontWeight: 600,
+              textTransform: "none",
+              "&:hover": {
+                transform: "translateY(-2px)",
+              },
+            }}
+          >
+            View on YouTube
           </Button>
         )}
       </CardActions>
