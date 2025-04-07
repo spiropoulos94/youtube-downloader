@@ -39,9 +39,6 @@ const StyledCard = styled(Card)(({ theme }) => ({
   display: "flex",
   flexDirection: "column",
   transition: "transform 0.2s ease-in-out",
-  "&:hover": {
-    transform: "translateY(-4px)",
-  },
   position: "relative",
   minHeight: 280,
   borderRadius: 16,
@@ -266,10 +263,6 @@ const Downloadable: React.FC<DownloadableProps> = ({
               fontWeight: 600,
               textTransform: "none",
               boxShadow: 2,
-              "&:hover": {
-                transform: "translateY(-2px)",
-                boxShadow: 3,
-              },
             }}
           >
             Download
@@ -297,10 +290,6 @@ const Downloadable: React.FC<DownloadableProps> = ({
               fontWeight: 600,
               textTransform: "none",
               boxShadow: 2,
-              "&:hover": {
-                transform: "translateY(-2px)",
-                boxShadow: 3,
-              },
             }}
           >
             Retry
@@ -318,15 +307,12 @@ const Downloadable: React.FC<DownloadableProps> = ({
             fullWidth
             startIcon={<OpenInNewIcon />}
             sx={{
-              mt: 1,
               fontWeight: 600,
               textTransform: "none",
-              "&:hover": {
-                transform: "translateY(-2px)",
-              },
+              boxShadow: 2,
             }}
           >
-            View on YouTube
+            YouTube
           </Button>
         )}
       </CardActions>
